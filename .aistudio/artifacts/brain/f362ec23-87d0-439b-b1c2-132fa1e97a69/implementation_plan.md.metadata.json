@@ -1,6 +1,0 @@
-{
-  "summary":  "Revised implementation plan for OrbitHabit incorporating a comprehensive notification architecture: local Android push notifications with actionable buttons (Complete Target, Log Floor, Snooze) via AlarmManager/NotificationManager, POST_NOTIFICATIONS runtime permission handling, and an In-App Smart Nudge banner system.",
-  "updatedAt":  "2026-10-20T20:13:04.925665766Z",
-  "requestFeedback":  true,
-  "userFacing":  true
-}
