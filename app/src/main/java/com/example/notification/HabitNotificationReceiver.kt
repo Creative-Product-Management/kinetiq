@@ -60,7 +60,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                     val feedback = NotificationCompat.Builder(context, HabitNotificationScheduler.CHANNEL_REMINDERS_ID)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle("Target Achieved! 🚀")
-                        .setContentText("Logged $habitTitle. Momentum is orbiting strong!")
+                        .setContentText("Logged $habitTitle. Kinetiq momentum is strong!")
                         .setAutoCancel(true)
                         .setTimeoutAfter(3000)
                         .build()

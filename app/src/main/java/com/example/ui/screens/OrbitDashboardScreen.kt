@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
@@ -49,19 +49,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.model.HabitEntity
 import com.example.ui.components.ActiveTimerDialog
 import com.example.ui.components.HabitCard
-import com.example.ui.components.InAppNudgeBanner
+import com.example.ui.components.InAppNudgeHero
 import com.example.ui.components.NotificationSettingsDialog
 import com.example.ui.components.QuickLogDialog
 import com.example.ui.theme.CardSurface
 import com.example.ui.theme.CardSurfaceElevated
+import com.example.ui.theme.Fraunces
 import com.example.ui.theme.OrbitEmerald
 import com.example.ui.theme.OrbitViolet
 import com.example.ui.theme.SurfaceBorder
@@ -88,7 +92,7 @@ fun OrbitDashboardScreen(
     val isNotificationSettingsOpen by viewModel.isNotificationSettingsOpen.collectAsStateWithLifecycle()
     val activeTimerHabit by viewModel.activeTimerHabit.collectAsStateWithLifecycle()
     val quickLogTarget by viewModel.quickLogTarget.collectAsStateWithLifecycle()
-    val inAppNudge by viewModel.inAppNudge.collectAsStateWithLifecycle()
+    val inAppNudges by viewModel.inAppNudges.collectAsStateWithLifecycle()
     val isSettingsOpen by viewModel.isSettingsOpen.collectAsStateWithLifecycle()
 
     // Filter habits by category
@@ -138,37 +142,22 @@ fun OrbitDashboardScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
+                        Image(
+                            painter = painterResource(R.drawable.ic_orbit_foreground_1792527364716),
+                            contentDescription = "Kinetiq",
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(36.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(OrbitEmerald.copy(alpha = 0.2f))
-                                .border(1.dp, OrbitEmerald, RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = "Logo",
-                                tint = OrbitEmerald,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Kinetiq",
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "KINETIC MOMENTUM",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                color = OrbitEmerald
-                            )
-                        }
+                        Text(
+                            text = "Kinetiq",
+                            fontFamily = Fraunces,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 },
                 actions = {
@@ -234,11 +223,11 @@ fun OrbitDashboardScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // In-App Smart Nudge
-            if (inAppNudge != null) {
+            // In-App Smart Nudge hero carousel
+            if (inAppNudges.isNotEmpty()) {
                 item {
-                    InAppNudgeBanner(
-                        nudge = inAppNudge,
+                    InAppNudgeHero(
+                        nudges = inAppNudges,
                         onActionClick = {
                             // Find first stack habit
                             val firstStackHabit = habits.firstOrNull { it.routineStackId != null }
@@ -246,7 +235,7 @@ fun OrbitDashboardScreen(
                                 viewModel.openHabitDetail(firstStackHabit)
                             }
                         },
-                        onDismiss = { viewModel.dismissNudge() }
+                        onDismiss = { id -> viewModel.dismissNudge(id) }
                     )
                 }
             }

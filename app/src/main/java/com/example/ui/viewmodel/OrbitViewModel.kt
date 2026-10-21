@@ -83,15 +83,39 @@ class OrbitViewModel(
     private val _quickLogTarget = MutableStateFlow<Pair<HabitEntity, DayStripItem>?>(null)
     val quickLogTarget: StateFlow<Pair<HabitEntity, DayStripItem>?> = _quickLogTarget.asStateFlow()
 
-    private val _inAppNudge = MutableStateFlow<InAppNudgeData?>(
-        InAppNudgeData(
-            type = NudgeType.STACK_PRIMED,
-            title = "Morning Launchpad Ready",
-            subtitle = "You have 2 habits linked in sequence. Completing Breathwork primes Hydration!",
-            actionLabel = "Start Stack"
+    private val _inAppNudges = MutableStateFlow(
+        listOf(
+            InAppNudgeData(
+                id = "stack",
+                type = NudgeType.STACK_PRIMED,
+                title = "Morning Launchpad Ready",
+                subtitle = "You have 2 habits linked in sequence. Completing Breathwork primes Hydration!",
+                actionLabel = "Start Stack"
+            ),
+            InAppNudgeData(
+                id = "momentum",
+                type = NudgeType.MOMENTUM_BOOST,
+                title = "Momentum is holding",
+                subtitle = "Yesterday's floor kept your score from slipping. One target today lifts it again.",
+                actionLabel = "Log today's target"
+            ),
+            InAppNudgeData(
+                id = "insight",
+                type = NudgeType.INSIGHT,
+                title = "Watch the afternoon dip",
+                subtitle = "Focus habits are most often missed after 2pm. A floor log still counts.",
+                actionLabel = "Review focus habits"
+            ),
+            InAppNudgeData(
+                id = "rest",
+                type = NudgeType.REST_SHIELD,
+                title = "Rest shield is available",
+                subtitle = "Scheduled recovery days freeze decay, so a planned rest does not break momentum.",
+                actionLabel = "See rest days"
+            )
         )
     )
-    val inAppNudge: StateFlow<InAppNudgeData?> = _inAppNudge.asStateFlow()
+    val inAppNudges: StateFlow<List<InAppNudgeData>> = _inAppNudges.asStateFlow()
 
     fun setCategory(category: String) {
         _selectedCategory.value = category
@@ -148,8 +172,8 @@ class OrbitViewModel(
         _quickLogTarget.value = null
     }
 
-    fun dismissNudge() {
-        _inAppNudge.value = null
+    fun dismissNudge(id: String) {
+        _inAppNudges.value = _inAppNudges.value.filterNot { it.id == id }
     }
 
     fun handleDayClick(habit: HabitEntity, item: DayStripItem) {

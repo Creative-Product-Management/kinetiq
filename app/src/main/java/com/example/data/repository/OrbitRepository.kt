@@ -68,6 +68,7 @@ class OrbitRepository(
                     isCompleted = true,
                     isFloorSustained = false,
                     numericValue = habit.targetValue,
+                    durationSeconds = if (habit.modality == HabitModality.TIMER) (habit.targetValue * 60).toInt() else existing.durationSeconds,
                     tallyCount = if (habit.modality == HabitModality.TALLY) habit.targetValue.toInt() else 1
                 )
             )
@@ -91,8 +92,13 @@ class OrbitRepository(
         val existing = habitDao.getRecord(habit.id, dateString)
         val isMet = amount >= habit.targetValue
         val isFloor = !isMet && (habit.floorValue != null && amount >= habit.floorValue)
-        val record = (existing ?: LogEntry(habitId = habit.id, dateString = dateString)).copy(
+        val base = existing ?: LogEntry(habitId = habit.id, dateString = dateString)
+        val record = base.copy(
             numericValue = amount,
+            // Keep the modality-specific field in sync so a custom amount logged
+            // for a tally or timer habit shows up on the habit card and analytics.
+            durationSeconds = if (habit.modality == HabitModality.TIMER) (amount * 60).toInt() else base.durationSeconds,
+            tallyCount = if (habit.modality == HabitModality.TALLY) amount.toInt() else base.tallyCount,
             isCompleted = isMet,
             isFloorSustained = isFloor
         )

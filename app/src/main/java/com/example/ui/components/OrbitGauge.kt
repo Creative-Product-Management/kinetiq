@@ -104,7 +104,7 @@ fun OrbitGauge(
                 color = TextPrimary
             )
             Text(
-                text = "ORBIT MOMENTUM",
+                text = "KINETIQ MOMENTUM",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,

@@ -16,9 +16,9 @@ val OrbitCyan = Color(0xFF06B6D4)
 val OrbitRose = Color(0xFFEC4899)
 val OrbitBlue = Color(0xFF3B82F6)
 
-val TextPrimary = Color(0xFFF0F6FC)
-val TextSecondary = Color(0xFF8B949E)
-val TextMuted = Color(0xFF6E7681)
+val TextPrimary = Color(0xFFF8FBFF)
+val TextSecondary = Color(0xFFC2CCD4)
+val TextMuted = Color(0xFF9AA7B2)
 
 val FloorGold = Color(0xFFD97706)
 val RestShieldBlue = Color(0xFF2563EB)

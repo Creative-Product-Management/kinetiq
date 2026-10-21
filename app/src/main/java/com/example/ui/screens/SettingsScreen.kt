@@ -25,12 +25,11 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.FileDownload
@@ -65,19 +64,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.OrbitHabitApplication
+import com.example.R
 import com.example.ui.theme.CardSurface
 import com.example.ui.theme.CardSurfaceElevated
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
 import com.example.ui.theme.OrbitEmerald
 import com.example.ui.theme.OrbitViolet
+import com.example.ui.theme.Fraunces
 import com.example.ui.theme.SurfaceBorder
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
@@ -421,18 +424,23 @@ fun SettingsScreen(
             SettingsSectionHeader(title = "ABOUT")
             SettingsCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
+                    Image(
+                        painter = painterResource(R.drawable.ic_orbit_foreground_1792527364716),
+                        contentDescription = "Kinetiq",
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(CircleShape)
-                            .background(OrbitEmerald.copy(alpha = 0.2f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = OrbitEmerald, modifier = Modifier.size(20.dp))
-                    }
+                            .clip(RoundedCornerShape(10.dp))
+                    )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = "Kinetiq", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                        Text(
+                            text = "Kinetiq",
+                            fontFamily = Fraunces,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                         Text(text = "Version 1.0 • Kinetic Momentum Engine", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

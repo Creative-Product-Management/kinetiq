@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitEntity
@@ -215,7 +216,7 @@ fun HabitEditorSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                HabitModality.values().forEach { mod ->
+                HabitModality.entries.forEach { mod ->
                     val isSelected = modality == mod
                     Box(
                         modifier = Modifier
@@ -224,23 +225,43 @@ fun HabitEditorSheet(
                             .background(if (isSelected) activeColor.copy(alpha = 0.2f) else CardSurface)
                             .border(1.dp, if (isSelected) activeColor else SurfaceBorder, RoundedCornerShape(8.dp))
                             .clickable {
+                                val previousModality = modality
                                 modality = mod
-                                if (unit.isBlank() || unit == modality.defaultUnit) {
+                                // Carry over the default unit only when the field is
+                                // empty or still shows the previous modality's default.
+                                // Comparing against the newly assigned modality here
+                                // left Timer/Tally habits stuck with "units".
+                                if (unit.isBlank() || unit == previousModality.defaultUnit) {
                                     unit = mod.defaultUnit
                                 }
                             }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                            .testTag("modality_tab_${mod.name}"),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = mod.displayName,
                             fontSize = 10.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) TextPrimary else TextSecondary
+                            color = if (isSelected) TextPrimary else TextSecondary,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = when (modality) {
+                    HabitModality.YES_NO -> "Simple daily check-in. Tap a day on the home screen to mark it done."
+                    HabitModality.NUMERIC -> "Track an amount each day, e.g. 2500 ml of water or 30 reps."
+                    HabitModality.TIMER -> "Track time in minutes with the built-in focus timer."
+                    HabitModality.TALLY -> "Count repeats per day. Each tap on a day adds 1 until the target is met."
+                },
+                fontSize = 11.sp,
+                color = TextMuted,
+                modifier = Modifier.testTag("modality_hint")
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -276,7 +297,16 @@ fun HabitEditorSheet(
                         OutlinedTextField(
                             value = floorValue,
                             onValueChange = { floorValue = it },
-                            placeholder = { Text("e.g., 20%", color = TextMuted) },
+                            placeholder = {
+                                Text(
+                                    text = when (modality) {
+                                        HabitModality.TIMER -> "e.g., 1"
+                                        HabitModality.TALLY -> "e.g., 1"
+                                        else -> "e.g., 500"
+                                    },
+                                    color = TextMuted
+                                )
+                            },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(
@@ -457,7 +487,7 @@ fun HabitEditorSheet(
                             modality = modality,
                             targetValue = targetNum,
                             floorValue = floorNum,
-                            unit = unit,
+                            unit = unit.ifBlank { modality.defaultUnit },
                             category = category,
                             colorHex = colorHex,
                             iconName = iconName,
