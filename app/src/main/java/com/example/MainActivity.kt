@@ -21,6 +21,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.ui.screens.AboutScreen
+import com.example.ui.screens.FaqScreen
 import com.example.ui.screens.HabitDetailAnalyticsScreen
 import com.example.ui.screens.HabitEditorSheet
 import com.example.ui.screens.HabitSortScreen
@@ -68,11 +70,19 @@ class MainActivity : ComponentActivity() {
                                 onOpenHabitDetail = { id -> navController.navigate("detail/$id") },
                                 onOpenEditor = { id -> navController.navigate(if (id == null) "editor" else "editor?habitId=$id") },
                                 onOpenSettings = { navController.navigate("settings") },
-                                onOpenSort = { navController.navigate("sort") }
+                                onOpenSort = { navController.navigate("sort") },
+                                onOpenFaqs = { navController.navigate("faqs") },
+                                onOpenAbout = { navController.navigate("about") }
                             )
                         }
                         composable("sort") {
                             HabitSortScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                        }
+                        composable("faqs") {
+                            FaqScreen(onBack = { navController.popBackStack() })
+                        }
+                        composable("about") {
+                            AboutScreen(onBack = { navController.popBackStack() })
                         }
                         composable(
                             route = "detail/{habitId}",

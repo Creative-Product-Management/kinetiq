@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,7 +51,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.HabitEntity
+import com.example.data.repository.HabitSortMode
 import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.sortHabitCards
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,11 +63,16 @@ fun HabitSortScreen(
     modifier: Modifier = Modifier
 ) {
     val habits by viewModel.allHabits.collectAsStateWithLifecycle()
+    val habitCards by viewModel.habitCards.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val categories by viewModel.allCategories.collectAsStateWithLifecycle()
+    val isMomentumMode = sortMode == HabitSortMode.MOMENTUM
+    val momentumById = remember(habitCards) { habitCards.associate { it.habit.id to it.momentumPercent } }
 
     var ordered by remember { mutableStateOf<List<HabitEntity>>(emptyList()) }
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    val displayedHabits = if (isMomentumMode) sortHabitCards(habitCards, HabitSortMode.MOMENTUM).map { it.habit } else ordered
 
     // Sync from DB when not actively dragging.
     LaunchedEffect(habits) {
@@ -91,12 +99,37 @@ fun HabitSortScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             Text(
-                text = "Long-press and drag to reorder",
+                text = "Sort by",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 8.dp)
+            )
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                SortModeChip(
+                    label = "Manual order",
+                    selected = !isMomentumMode,
+                    onClick = { viewModel.setSortMode(HabitSortMode.MANUAL) },
+                    testTag = "sort_mode_manual",
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(10.dp))
+                SortModeChip(
+                    label = "Momentum Score",
+                    selected = isMomentumMode,
+                    onClick = { viewModel.setSortMode(HabitSortMode.MOMENTUM) },
+                    testTag = "sort_mode_momentum",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Text(
+                text = if (isMomentumMode) "Highest Momentum first. Order updates as scores change." else "Long-press and drag to reorder",
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
             )
-            if (ordered.isEmpty()) {
+            if (displayedHabits.isEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
                     Text("No habits to sort", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
                 }
@@ -105,7 +138,7 @@ fun HabitSortScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    itemsIndexed(ordered, key = { _, habit -> habit.id }) { index, habit ->
+                    itemsIndexed(displayedHabits, key = { _, habit -> habit.id }) { index, habit ->
                         val isDragging = index == draggingIndex
                         val categoryName = categories.firstOrNull { it.id == habit.categoryId }?.name ?: "General"
                         Row(
@@ -119,7 +152,8 @@ fun HabitSortScreen(
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(if (isDragging) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface)
                                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                                .pointerInput(habit.id, ordered.size) {
+                                .pointerInput(habit.id, ordered.size, isMomentumMode) {
+                                    if (isMomentumMode) return@pointerInput
                                     detectDragGesturesAfterLongPress(
                                         onDragStart = {
                                             draggingIndex = index
@@ -180,10 +214,42 @@ fun HabitSortScreen(
                                     overflow = TextOverflow.Ellipsis
                                 )
                             }
+                            if (isMomentumMode) {
+                                Text(
+                                    "${momentumById[habit.id] ?: 0}%",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.testTag("sort_momentum_${habit.id}")
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SortModeChip(label: String, selected: Boolean, onClick: () -> Unit, testTag: String, modifier: Modifier = Modifier) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface)
+            .border(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+            .testTag(testTag)
+    ) {
+        Text(
+            label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }

@@ -9,6 +9,7 @@ import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
 import com.example.data.model.RoutineStackEntity
 import com.example.data.repository.HabitRepository
+import com.example.data.repository.HabitSortMode
 import com.example.data.repository.KinetiqSettings
 import com.example.data.repository.LogRepository
 import com.example.data.repository.RecordsVersion
@@ -49,8 +50,15 @@ fun nudgeDismissalKey(nudgeId: String, todayString: String): String = nudgeId + 
 data class HabitCardUi(
     val habit: HabitEntity,
     val categoryName: String,
-    val recentDays: List<DayStripItem>
+    val recentDays: List<DayStripItem>,
+    val momentumPercent: Int = 0
 )
+
+/** MANUAL keeps the saved home order; MOMENTUM puts highest momentum first (ties keep manual order). */
+fun sortHabitCards(cards: List<HabitCardUi>, mode: HabitSortMode): List<HabitCardUi> = when (mode) {
+    HabitSortMode.MANUAL -> cards
+    HabitSortMode.MOMENTUM -> cards.sortedWith(compareByDescending<HabitCardUi> { it.momentumPercent }.thenBy { it.habit.orderIndex })
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class KinetiqViewModel(
@@ -72,6 +80,9 @@ class KinetiqViewModel(
     val dailyEveningDigestHour: StateFlow<Int> = settings.map { it.dailyEveningDigestHour }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 21)
     /** Permanent dashboard hero preference. Defaults to visible; Settings can hide it for good. */
     val showHeroSection: StateFlow<Boolean> = settings.map { it.showHeroSection }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    val sortMode: StateFlow<HabitSortMode> = settings.map { it.sortMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSortMode.MANUAL)
+
+    fun setSortMode(mode: HabitSortMode) { viewModelScope.launch { settingsRepository.setSortMode(mode) } }
 
     val allHabits: StateFlow<List<HabitEntity>> = habitRepository.activeHabits
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -115,11 +126,22 @@ class KinetiqViewModel(
         ).also { analyticsCache.put(habit, version, s.restShieldEnabled, s.weekStartsOnMonday, it) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    /** Records in the Momentum window (last 91 days), kept separate from the 14-day day-strip window. */
+    val momentumRecords: StateFlow<List<HabitRecordEntity>> = logRepository.momentumRecords()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     /** Precomputed card UI state; LazyColumn never does date math during composition. */
-    val habitCards: StateFlow<List<HabitCardUi>> = combine(allHabits, dashboardRecords, allCategories, settings) { habits, records, categories, s ->
+    val habitCards: StateFlow<List<HabitCardUi>> = combine(allHabits, dashboardRecords, momentumRecords, allCategories, settings) { habits, records, momentum, categories, s ->
         val catNames = categories.associate { it.id to it.name }
         val byHabit = records.groupBy { it.habitId }
-        habits.map { habit -> HabitCardUi(habit, catNames[habit.categoryId] ?: "General", buildRecent7Days(habit.id, byHabit[habit.id].orEmpty(), s.weekStartsOnMonday)) }
+        val momentumByHabit = momentum.groupBy { it.habitId }
+        habits.map { habit ->
+            HabitCardUi(
+                habit, catNames[habit.categoryId] ?: "General",
+                buildRecent7Days(habit.id, byHabit[habit.id].orEmpty(), s.weekStartsOnMonday),
+                HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumByHabit[habit.id].orEmpty(), restShieldEnabled = s.restShieldEnabled)
+            )
+        }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isEditorOpen = MutableStateFlow(false)
