@@ -1,37 +1,32 @@
 package com.example.ui.components
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,11 +40,34 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
-import com.example.KinetiqHabitApplication
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.ui.theme.KinetiqEmerald
 import com.example.ui.theme.KinetiqViolet
+
+/** True only when the OS will actually show this app's notifications. */
+fun areAppNotificationsEnabled(context: Context): Boolean =
+    NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+/** Opens this app's page in system notification settings (falls back to app details). */
+fun openAppNotificationSettings(context: Context) {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+        putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    runCatching { context.startActivity(intent) }.onFailure {
+        runCatching {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", context.packageName, null)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        }
+    }
+}
 
 @Composable
 fun NotificationSettingsDialog(
@@ -57,25 +75,20 @@ fun NotificationSettingsDialog(
     onSendTestNotification: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var permissionGranted by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PermissionChecker.PERMISSION_GRANTED
-            } else {
-                true
-            }
-        )
-    }
-
+    var notificationsEnabled by remember { mutableStateOf(areAppNotificationsEnabled(context)) }
     var testSentConfirmation by remember { mutableStateOf(false) }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        permissionGranted = isGranted
+    // Re-check when returning from system settings so the dialog swaps
+    // "Open Settings" for "Send Test" as soon as notifications are on.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled = areAppNotificationsEnabled(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     AlertDialog(
@@ -99,7 +112,7 @@ fun NotificationSettingsDialog(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Habit Reminders",
+                    text = "Notifications",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -108,75 +121,53 @@ fun NotificationSettingsDialog(
         },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                // Info Box
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                        .padding(12.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "⚡ Actionable Lock-Screen Logging",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = KinetiqEmerald
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "When a habit reminder fires, you can log 'Done (Target)' or 'Sustain (Floor)' directly from your notification drawer without even opening the app!",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            lineHeight = 15.sp
-                        )
+                if (!notificationsEnabled) {
+                    Button(
+                        onClick = { openAppNotificationSettings(context) },
+                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqViolet),
+                        modifier = Modifier.fillMaxWidth().testTag("open_notification_settings_btn")
+                    ) {
+                        Icon(imageVector = Icons.Default.Settings, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Settings", fontWeight = FontWeight.Bold)
                     }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !permissionGranted) {
+                } else {
                     Button(
                         onClick = {
-                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            onSendTestNotification()
+                            testSentConfirmation = true
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqViolet),
-                        modifier = Modifier.fillMaxWidth().testTag("request_notification_permission_btn")
+                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqEmerald),
+                        modifier = Modifier.fillMaxWidth().testTag("send_test_notification_btn")
                     ) {
-                        Icon(imageVector = Icons.Default.Notifications, contentDescription = null)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Grant Notification Permission", fontWeight = FontWeight.Bold)
+                        Text("Send Test", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
+
+                    if (testSentConfirmation) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Test sent.",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = KinetiqEmerald
+                        )
+                    }
                 }
 
-                Button(
-                    onClick = {
-                        onSendTestNotification()
-                        testSentConfirmation = true
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = KinetiqEmerald),
-                    modifier = Modifier.fillMaxWidth().testTag("send_test_notification_btn")
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.Black)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Send Test Notification Now", color = Color.Black, fontWeight = FontWeight.Bold)
-                }
-
-                if (testSentConfirmation) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "✓ Notification dispatched! Check your status bar to try the 'Done', 'Floor', and 'Snooze' actions.",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = KinetiqEmerald
-                    )
-                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "If you don't receive notification, please turn on app notifications on your device.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 15.sp,
+                    modifier = Modifier.testTag("notification_hint_text")
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag("close_notifications_btn")) {
                 Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

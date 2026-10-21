@@ -19,9 +19,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.SelfImprovement
@@ -29,12 +30,18 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +51,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,13 +83,14 @@ fun HabitCard(
     onCardClick: () -> Unit,
     onDayClick: (DayStripItem) -> Unit,
     onDayLongClick: (DayStripItem) -> Unit,
-    onMenuClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onArchiveClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    categoryName: String = "General",
-    onMoveUp: (() -> Unit)? = null,
-    onMoveDown: (() -> Unit)? = null
+    categoryName: String = "General"
 ) {
     val habitColor = remember(habit.colorHex) { parseHabitColor(habit.colorHex) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     val iconVector: ImageVector = when (habit.iconName) {
         "SelfImprovement" -> Icons.Default.SelfImprovement
@@ -101,7 +110,7 @@ fun HabitCard(
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onCardClick,
-                onLongClick = onMenuClick
+                onLongClick = { menuExpanded = true }
             )
             .padding(16.dp)
             .testTag("habit_card_${habit.id}")
@@ -129,80 +138,51 @@ fun HabitCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = habit.title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFF21262D))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = categoryName,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+            Text(
+                text = habit.title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
 
-                // Cue Trigger or Modality info
-                if (habit.cueTrigger.isNotBlank()) {
-                    Text(
-                        text = "⚡ Cue: ${habit.cueTrigger}",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                } else {
-                    val targetText = when (habit.modality) {
-                        HabitModality.YES_NO -> "Daily Target"
-                        HabitModality.NUMERIC -> "Target: ${habit.targetValue.toInt()} ${habit.unit}"
-                        HabitModality.TIMER -> "Target: ${habit.targetValue.toInt()} ${habit.unit}"
-                        HabitModality.TALLY -> "Target: ${habit.targetValue.toInt()} ${habit.unit}"
-                    }
-                    val floorText = if (habit.floorValue != null && habit.floorValue > 0) {
-                        " • Floor: ${habit.floorValue.toInt()} ${habit.unit}"
-                    } else ""
-                    Text(
-                        text = targetText + floorText,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true },
+                    modifier = Modifier.size(48.dp).testTag("habit_menu_${habit.id}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Habit options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-            }
-
-            if (onMoveUp != null) {
-                IconButton(onClick = onMoveUp, modifier = Modifier.size(32.dp)) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Move habit up", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit") },
+                        leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = { menuExpanded = false; onEditClick() },
+                        modifier = Modifier.testTag("habit_menu_edit_${habit.id}")
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Archive") },
+                        leadingIcon = { Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = { menuExpanded = false; onArchiveClick() },
+                        modifier = Modifier.testTag("habit_menu_archive_${habit.id}")
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp)) },
+                        onClick = { menuExpanded = false; onDeleteClick() },
+                        modifier = Modifier.testTag("habit_menu_delete_${habit.id}")
+                    )
                 }
-            }
-            if (onMoveDown != null) {
-                IconButton(onClick = onMoveDown, modifier = Modifier.size(32.dp)) {
-                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Move habit down", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                }
-            }
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(48.dp).testTag("habit_menu_${habit.id}")
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Edit habit options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
             }
         }
 
@@ -318,5 +298,53 @@ fun HabitCard(
                 }
             }
         }
+
+        // Footer: Category (left) · Cue or Target/Floor (right)
+        Spacer(modifier = Modifier.height(12.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().testTag("habit_card_footer_${habit.id}"),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = categoryName,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            val footerRight = if (habit.cueTrigger.isNotBlank()) {
+                "⚡ ${habit.cueTrigger}"
+            } else {
+                val targetText = when (habit.modality) {
+                    HabitModality.YES_NO -> "Daily Target"
+                    else -> "Target ${formatHabitValue(habit.targetValue)} ${habit.unit}".trim()
+                }
+                val floorText = if (habit.floorValue != null && habit.floorValue > 0) {
+                    " · Floor ${formatHabitValue(habit.floorValue)} ${habit.unit}".trimEnd()
+                } else ""
+                targetText + floorText
+            }
+            Text(
+                text = footerRight,
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.End,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
+
+private fun formatHabitValue(value: Double): String =
+    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()

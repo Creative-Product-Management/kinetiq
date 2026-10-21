@@ -52,6 +52,15 @@ class HabitRepository(
         }
     }
 
+    /** Persists a full manual ordering (from the Sort screen) in one transaction. */
+    suspend fun saveOrder(ordered: List<Habit>) {
+        database.withTransaction {
+            ordered.forEachIndexed { index, habit ->
+                if (habit.orderIndex != index) habitDao.updateHabit(habit.copy(orderIndex = index))
+            }
+        }
+    }
+
     suspend fun saveCategory(category: Category): Long = categoryDao.insertCategory(category)
     suspend fun saveStack(stack: RoutineStackEntity): Long = habitDao.insertStack(stack)
 
