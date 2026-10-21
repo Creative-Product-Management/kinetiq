@@ -1,11 +1,20 @@
 package com.example.ui.theme
 
+import android.content.Context
+import android.content.ContextWrapper
+import android.graphics.Color as AndroidColor
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 
 enum class ThemeMode(val displayName: String) {
     DARK("Dark"),
@@ -69,12 +78,34 @@ fun OrbitHabitTheme(
     }
 
     val colorScheme = if (isDark) OrbitDarkColorScheme else OrbitLightColorScheme
+    val view = LocalView.current
+
+    LaunchedEffect(isDark, colorScheme.background) {
+        val activity = view.context.findActivity() ?: return@LaunchedEffect
+        val transparent = AndroidColor.TRANSPARENT
+        val barStyle = if (isDark) {
+            SystemBarStyle.dark(transparent)
+        } else {
+            SystemBarStyle.light(transparent, transparent)
+        }
+        activity.enableEdgeToEdge(
+            statusBarStyle = barStyle,
+            navigationBarStyle = barStyle
+        )
+        activity.window.decorView.setBackgroundColor(colorScheme.background.toArgb())
+    }
 
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
         content = content
     )
+}
+
+private tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
+    is ComponentActivity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable
