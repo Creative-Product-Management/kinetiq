@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,12 +29,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -41,13 +45,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,19 +67,19 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.model.Category
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
-import com.example.ui.theme.CardSurface
-import com.example.ui.theme.CardSurfaceElevated
+import com.example.data.model.RoutineStackEntity
+import com.example.domain.validation.HabitValidator
 import com.example.ui.theme.FloorGold
+import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KinetiqViolet
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.OrbitViolet
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.VoidBackground
+import com.example.ui.theme.parseHabitColor
+
+private fun formatDecimal(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,177 +87,131 @@ fun HabitEditorSheet(
     habit: HabitEntity?,
     onDismiss: () -> Unit,
     onSave: (HabitEntity) -> Unit,
-    onDelete: ((HabitEntity) -> Unit)? = null
+    onDelete: ((HabitEntity) -> Unit)? = null,
+    onArchive: ((HabitEntity) -> Unit)? = null,
+    categories: List<Category> = emptyList(),
+    stacks: List<RoutineStackEntity> = emptyList(),
+    defaultFloorPercent: Int = 25
 ) {
-    // Enable system back gesture navigation
-    BackHandler { onDismiss() }
+    var title by rememberSaveable(habit?.id) { mutableStateOf(habit?.title ?: "") }
+    var description by rememberSaveable(habit?.id) { mutableStateOf(habit?.description ?: "") }
+    var cueTrigger by rememberSaveable(habit?.id) { mutableStateOf(habit?.cueTrigger ?: "") }
+    var modality by rememberSaveable(habit?.id) { mutableStateOf(habit?.modality ?: HabitModality.YES_NO) }
+    var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "1") }
+    var floorValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.floorValue?.let { formatDecimal(it) } ?: "") }
+    var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: (habit?.modality ?: HabitModality.YES_NO).defaultUnit) }
+    var categoryId by rememberSaveable(habit?.id) { mutableStateOf(habit?.categoryId) }
+    var routineStackId by rememberSaveable(habit?.id) { mutableStateOf(habit?.routineStackId) }
+    var colorHex by rememberSaveable(habit?.id) { mutableStateOf(habit?.colorHex ?: "#10B981") }
+    var iconName by rememberSaveable(habit?.id) { mutableStateOf(habit?.iconName ?: "SelfImprovement") }
+    var hasReminder by rememberSaveable(habit?.id) { mutableStateOf(habit?.reminderHour != null) }
+    var reminderHour by rememberSaveable(habit?.id) { mutableIntStateOf(habit?.reminderHour ?: 8) }
+    var reminderMinute by rememberSaveable(habit?.id) { mutableIntStateOf(habit?.reminderMinute ?: 0) }
+    var reminderDaysMask by rememberSaveable(habit?.id) { mutableIntStateOf(habit?.reminderDaysMask ?: 127) }
+    var restDaysMask by rememberSaveable(habit?.id) { mutableIntStateOf(habit?.restDaysMask ?: 0) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var validation by remember { mutableStateOf(HabitValidator.Result()) }
 
-    var title by remember { mutableStateOf(habit?.title ?: "") }
-    var description by remember { mutableStateOf(habit?.description ?: "") }
-    var cueTrigger by remember { mutableStateOf(habit?.cueTrigger ?: "") }
-    var modality by remember { mutableStateOf(habit?.modality ?: HabitModality.YES_NO) }
-    var targetValue by remember {
-        mutableStateOf(habit?.targetValue?.let { if (it > 0) it.toInt().toString() else "1" } ?: "1")
-    }
-    var floorValue by remember {
-        mutableStateOf(habit?.floorValue?.let { if (it > 0) it.toInt().toString() else "" } ?: "")
-    }
-    var unit by remember { mutableStateOf(habit?.unit ?: modality.defaultUnit) }
-    var category by remember { mutableStateOf(habit?.category ?: "Health") }
-    var colorHex by remember { mutableStateOf(habit?.colorHex ?: "#10B981") }
-    var iconName by remember { mutableStateOf(habit?.iconName ?: "SelfImprovement") }
-
-    var hasReminder by remember { mutableStateOf(habit?.reminderHour != null) }
-    var reminderHour by remember { mutableIntStateOf(habit?.reminderHour ?: 8) }
-    var reminderMinute by remember { mutableIntStateOf(habit?.reminderMinute ?: 0) }
-
-    var restDaysMask by remember { mutableIntStateOf(habit?.restDaysMask ?: 0) }
-
-    val categories = listOf("Health", "Focus", "Mindfulness", "Fitness", "Routine", "Learning")
     val colors = listOf("#10B981", "#8B5CF6", "#F59E0B", "#F43F5E", "#06B6D4", "#EC4899", "#3B82F6")
+    val icons = listOf("SelfImprovement", "WaterDrop", "Psychology", "FitnessCenter", "Timer", "Bolt", "Sparkles")
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val activeColor = remember(colorHex) { parseHabitColor(colorHex) }
 
-    val activeColor = remember(colorHex) {
-        try { Color(android.graphics.Color.parseColor(colorHex)) } catch (_: Exception) { OrbitEmerald }
+    val isDirty = remember(title, description, cueTrigger, modality, targetValue, floorValue, unit, categoryId, routineStackId, colorHex, iconName, hasReminder, reminderHour, reminderMinute, reminderDaysMask, restDaysMask) {
+        habit == null || title != habit.title || description != habit.description || cueTrigger != habit.cueTrigger ||
+            modality != habit.modality || targetValue != formatDecimal(habit.targetValue) ||
+            floorValue != (habit.floorValue?.let { formatDecimal(it) } ?: "") || categoryId != habit.categoryId ||
+            routineStackId != habit.routineStackId || restDaysMask != habit.restDaysMask
     }
+    fun requestDismiss() { if (isDirty) showDiscardConfirm = true else onDismiss() }
+    BackHandler { requestDismiss() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = if (habit == null) "Create New Habit" else "Edit Habit",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
-                    )
-                },
+                title = { Text(text = if (habit == null) "Create New Habit" else "Edit Habit", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("editor_back_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back to home screen",
-                            tint = TextPrimary
-                        )
+                    IconButton(onClick = { requestDismiss() }, modifier = Modifier.testTag("editor_back_btn")) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 actions = {
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.testTag("editor_close_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Cancel and discard",
-                            tint = TextSecondary
-                        )
+                    IconButton(onClick = { requestDismiss() }, modifier = Modifier.testTag("editor_close_btn")) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel and discard", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = VoidBackground),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 windowInsets = WindowInsets.statusBars
             )
         },
-        containerColor = VoidBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp)
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 20.dp).navigationBarsPadding().verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Title Input
-            Text("HABIT TITLE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+            Text("HABIT TITLE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
-                value = title,
-                onValueChange = { title = it },
-                placeholder = { Text("e.g., Morning Breathwork, 2L Water", color = TextMuted) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = activeColor,
-                    unfocusedBorderColor = SurfaceBorder,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
+                value = title, onValueChange = { title = it },
+                placeholder = { Text("e.g., Morning Breathwork, 2L Water", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                singleLine = true, isError = validation.titleError != null,
+                supportingText = validation.titleError?.let { { Text(it, color = MissedRed) } },
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = activeColor, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
                 modifier = Modifier.fillMaxWidth().testTag("habit_title_input")
             )
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Habit Stacking Cue (James Clear / BJ Fogg)
-            Text("HABIT STACKING ANCHOR CUE (OPTIONAL)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = OrbitViolet)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Anchor your new habit to an existing routine: 'After I [Current Cue], I will [This Habit]'",
-                fontSize = 11.sp,
-                color = TextMuted
-            )
+            Text("DESCRIPTION (OPTIONAL)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(6.dp))
             OutlinedTextField(
-                value = cueTrigger,
-                onValueChange = { cueTrigger = it },
-                placeholder = { Text("e.g., After I pour my morning coffee...", color = TextMuted) },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = OrbitViolet,
-                    unfocusedBorderColor = SurfaceBorder,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
-                ),
-                modifier = Modifier.fillMaxWidth().testTag("habit_cue_input")
+                value = description, onValueChange = { description = it },
+                placeholder = { Text("Why this habit matters...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = activeColor, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.fillMaxWidth().testTag("habit_description_input")
             )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Modality Selector
-            Text("TRACKING MODALITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+            Text("HABIT STACKING ANCHOR CUE (OPTIONAL)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = KinetiqViolet)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "Anchor your new habit to an existing routine: 'After I [Current Cue], I will [This Habit]'", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = cueTrigger, onValueChange = { cueTrigger = it },
+                placeholder = { Text("e.g., After I pour my morning coffee...", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = KinetiqViolet, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
+                modifier = Modifier.fillMaxWidth().testTag("habit_cue_input")
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("TRACKING MODALITY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 HabitModality.entries.forEach { mod ->
                     val isSelected = modality == mod
                     Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSelected) activeColor.copy(alpha = 0.2f) else CardSurface)
-                            .border(1.dp, if (isSelected) activeColor else SurfaceBorder, RoundedCornerShape(8.dp))
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                            .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
+                            .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                             .clickable {
-                                val previousModality = modality
-                                modality = mod
-                                // Carry over the default unit only when the field is
-                                // empty or still shows the previous modality's default.
-                                // Comparing against the newly assigned modality here
-                                // left Timer/Tally habits stuck with "units".
-                                if (unit.isBlank() || unit == previousModality.defaultUnit) {
-                                    unit = mod.defaultUnit
+                                val previous = modality; modality = mod
+                                if (unit.isBlank() || unit == previous.defaultUnit) unit = mod.defaultUnit
+                                if (mod != HabitModality.YES_NO && floorValue.isBlank()) {
+                                    (targetValue.toDoubleOrNull()?.let { it * defaultFloorPercent / 100.0 })?.let { floorValue = formatDecimal(it) }
                                 }
                             }
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                            .testTag("modality_tab_${mod.name}"),
+                            .padding(vertical = 10.dp, horizontal = 4.dp).testTag("modality_tab_${mod.name}"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = mod.displayName,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) TextPrimary else TextSecondary,
-                            textAlign = TextAlign.Center
-                        )
+                        Text(text = mod.displayName, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = when (modality) {
@@ -258,82 +220,45 @@ fun HabitEditorSheet(
                     HabitModality.TIMER -> "Track time in minutes with the built-in focus timer."
                     HabitModality.TALLY -> "Count repeats per day. Each tap on a day adds 1 until the target is met."
                 },
-                fontSize = 11.sp,
-                color = TextMuted,
-                modifier = Modifier.testTag("modality_hint")
+                fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("modality_hint")
             )
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Targets & Elastic Floor
             if (modality != HabitModality.YES_NO) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Target Value
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("TARGET GOAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                        Text("TARGET GOAL", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
-                            value = targetValue,
-                            onValueChange = { targetValue = it },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = activeColor,
-                                unfocusedBorderColor = SurfaceBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
+                            value = targetValue, onValueChange = { targetValue = it },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true, isError = validation.targetError != null,
+                            supportingText = validation.targetError?.let { { Text(it, color = MissedRed) } },
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = activeColor, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.fillMaxWidth().testTag("target_value_input")
                         )
                     }
-
-                    // Elastic Floor (Minimum Viable Habit)
                     Column(modifier = Modifier.weight(1f)) {
                         Text("FLOOR (MINIMUM)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = FloorGold)
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
-                            value = floorValue,
-                            onValueChange = { floorValue = it },
-                            placeholder = {
-                                Text(
-                                    text = when (modality) {
-                                        HabitModality.TIMER -> "e.g., 1"
-                                        HabitModality.TALLY -> "e.g., 1"
-                                        else -> "e.g., 500"
-                                    },
-                                    color = TextMuted
-                                )
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = FloorGold,
-                                unfocusedBorderColor = SurfaceBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
+                            value = floorValue, onValueChange = { floorValue = it },
+                            placeholder = { Text("e.g., 0.5", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            singleLine = true, isError = validation.floorError != null,
+                            supportingText = validation.floorError?.let { { Text(it, color = MissedRed) } },
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = FloorGold, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.fillMaxWidth().testTag("floor_value_input")
                         )
                     }
-
-                    // Unit
                     Column(modifier = Modifier.weight(0.9f)) {
-                        Text("UNIT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+                        Text("UNIT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.height(6.dp))
                         OutlinedTextField(
-                            value = unit,
-                            onValueChange = { unit = it },
-                            placeholder = { Text("mins, ml", color = TextMuted) },
+                            value = unit, onValueChange = { unit = it },
+                            placeholder = { Text("mins, ml", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                             singleLine = true,
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = activeColor,
-                                unfocusedBorderColor = SurfaceBorder,
-                                focusedTextColor = TextPrimary,
-                                unfocusedTextColor = TextPrimary
-                            ),
+                            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = activeColor, unfocusedBorderColor = MaterialTheme.colorScheme.outline, focusedTextColor = MaterialTheme.colorScheme.onSurface, unfocusedTextColor = MaterialTheme.colorScheme.onSurface),
                             modifier = Modifier.fillMaxWidth().testTag("unit_input")
                         )
                     }
@@ -341,159 +266,106 @@ fun HabitEditorSheet(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Category Chips
-            Text("CATEGORY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+            Text("CATEGORY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                categories.take(4).forEach { cat ->
-                    val isSelected = category == cat
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (isSelected) activeColor else CardSurfaceElevated)
-                            .clickable { category = cat }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = cat,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.Black else TextSecondary
-                        )
+            if (categories.isEmpty()) {
+                Text("General", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categories.forEach { cat ->
+                        val isSelected = categoryId == cat.id
+                        Box(
+                            modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { categoryId = cat.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("category_option_${cat.id}")
+                        ) { Text(text = cat.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Color Presets
-            Text("COLOR ACCENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
+            Text("ROUTINE STACK (OPTIONAL)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                colors.forEach { hex ->
-                    val c = Color(android.graphics.Color.parseColor(hex))
-                    val isSelected = colorHex.equals(hex, ignoreCase = true)
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(c)
-                            .border(if (isSelected) 2.5.dp else 0.dp, Color.White, CircleShape)
-                            .clickable { colorHex = hex }
-                    )
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (routineStackId == null) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = null }.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (routineStackId == null) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                stacks.forEach { stack ->
+                    val isSelected = routineStackId == stack.id
+                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = stack.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_${stack.id}")) {
+                        Text(stack.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Scheduled Rest Day Shields
+            Text("COLOR ACCENT", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                colors.forEach { hex ->
+                    val c = parseHabitColor(hex)
+                    val isSelected = colorHex.equals(hex, ignoreCase = true)
+                    Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(c).border(if (isSelected) 2.5.dp else 0.dp, Color.White, CircleShape).clickable { colorHex = hex })
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("ICON", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                icons.forEach { name ->
+                    val isSelected = iconName == name
+                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { iconName = name }.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                        Text(name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text("SCHEDULED REST SHIELDS (IMMUNE TO DECAY)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF3B82F6))
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Designated recovery days that will not penalize your streak or momentum score.",
-                fontSize = 11.sp,
-                color = TextMuted
-            )
+            Text(text = "Designated recovery days that will not penalize your streak or momentum score.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                daysOfWeek.forEachIndexed { index, day ->
-                    val isRest = ((restDaysMask shr index) and 1) == 1
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(if (isRest) Color(0xFF1E3A8A) else CardSurfaceElevated)
-                            .border(1.dp, if (isRest) Color(0xFF3B82F6) else SurfaceBorder, CircleShape)
-                            .clickable {
-                                restDaysMask = restDaysMask xor (1 shl index)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = day.take(1),
-                            fontSize = 11.sp,
-                            fontWeight = if (isRest) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isRest) Color.White else TextMuted
-                        )
-                    }
-                }
-            }
-
+            DayMaskRow(mask = restDaysMask, daysOfWeek = daysOfWeek, selectedColor = Color(0xFF1E3A8A), borderColor = Color(0xFF3B82F6)) { restDaysMask = it }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Reminder Toggle & Time
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("DAILY REMINDER NOTIFICATION", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextMuted)
-                    Text(
-                        text = if (hasReminder) String.format("%02d:%02d daily", reminderHour, reminderMinute) else "Disabled",
-                        fontSize = 12.sp,
-                        color = if (hasReminder) OrbitEmerald else TextSecondary
-                    )
+                    Text("DAILY REMINDER NOTIFICATION", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = if (hasReminder) String.format("%02d:%02d on selected days", reminderHour, reminderMinute) else "Disabled", fontSize = 12.sp, color = if (hasReminder) KinetiqEmerald else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Switch(
-                    checked = hasReminder,
-                    onCheckedChange = { hasReminder = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = OrbitEmerald, checkedTrackColor = Color(0xFF0F3A2A))
-                )
+                Switch(checked = hasReminder, onCheckedChange = { hasReminder = it }, colors = SwitchDefaults.colors(checkedThumbColor = KinetiqEmerald, checkedTrackColor = Color(0xFF0F3A2A)))
             }
-
             if (hasReminder) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { reminderHour = (reminderHour + 1) % 24 },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Hour: ${String.format("%02d", reminderHour)}", color = TextPrimary)
-                    }
-                    OutlinedButton(
-                        onClick = { reminderMinute = (reminderMinute + 15) % 60 },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Min: ${String.format("%02d", reminderMinute)}", color = TextPrimary)
-                    }
+                OutlinedButton(onClick = { showTimePicker = true }, modifier = Modifier.fillMaxWidth().testTag("reminder_time_btn")) {
+                    Text("Reminder time: ${String.format("%02d:%02d", reminderHour, reminderMinute)}", color = MaterialTheme.colorScheme.onSurface)
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text("REMINDER DAYS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                DayMaskRow(mask = reminderDaysMask, daysOfWeek = daysOfWeek, selectedColor = KinetiqEmerald, borderColor = KinetiqEmerald) { reminderDaysMask = it }
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Save & Delete
             Button(
                 onClick = {
-                    if (title.isNotBlank()) {
-                        val targetNum = targetValue.toDoubleOrNull() ?: 1.0
-                        val floorNum = floorValue.toDoubleOrNull()
+                    val targetNum = targetValue.toDoubleOrNull()
+                    val floorNum = if (floorValue.isBlank()) null else floorValue.toDoubleOrNull()
+                    validation = HabitValidator.validate(title, targetNum, floorNum)
+                    if (modality != HabitModality.YES_NO && floorValue.isNotBlank() && floorNum == null) {
+                        validation = validation.copy(floorError = "Enter a valid number")
+                    }
+                    if (validation.isValid) {
                         val newHabit = (habit ?: HabitEntity(title = title)).copy(
-                            title = title,
-                            description = description,
-                            cueTrigger = cueTrigger,
-                            modality = modality,
-                            targetValue = targetNum,
-                            floorValue = floorNum,
+                            title = title.trim(), description = description, cueTrigger = cueTrigger,
+                            modality = modality, targetValue = targetNum ?: 1.0, floorValue = floorNum,
                             unit = unit.ifBlank { modality.defaultUnit },
-                            category = category,
-                            colorHex = colorHex,
-                            iconName = iconName,
+                            categoryId = categoryId, routineStackId = routineStackId,
+                            colorHex = colorHex, iconName = iconName,
                             reminderHour = if (hasReminder) reminderHour else null,
                             reminderMinute = if (hasReminder) reminderMinute else null,
-                            restDaysMask = restDaysMask
+                            reminderDaysMask = reminderDaysMask, restDaysMask = restDaysMask
                         )
                         onSave(newHabit)
                     }
@@ -506,31 +378,84 @@ fun HabitEditorSheet(
                 Text("Save Habit", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
 
+            if (habit != null && onArchive != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedButton(onClick = { onArchive(habit) }, modifier = Modifier.fillMaxWidth().testTag("archive_habit_btn")) {
+                    Icon(Icons.Default.Inventory2, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Archive Habit (restorable)")
+                }
+            }
             if (habit != null && onDelete != null) {
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
-                    onClick = { onDelete(habit) },
+                    onClick = { showDeleteConfirm = true },
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MissedRed),
                     modifier = Modifier.fillMaxWidth().testTag("delete_habit_btn")
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, tint = MissedRed)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Habit & Logs", color = MissedRed)
+                    Text("Delete Habit & Logs Permanently", color = MissedRed)
                 }
             }
-
             Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onDismiss,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                modifier = Modifier.fillMaxWidth().testTag("cancel_habit_btn")
-            ) {
-                Icon(Icons.Default.Close, contentDescription = null, tint = TextSecondary)
+            OutlinedButton(onClick = { requestDismiss() }, colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.fillMaxWidth().testTag("cancel_habit_btn")) {
+                Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Cancel & Discard", color = TextSecondary)
+                Text("Cancel & Discard", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
             Spacer(modifier = Modifier.height(36.dp))
+        }
+    }
+
+    if (showTimePicker) {
+        val timeState = rememberTimePickerState(initialHour = reminderHour, initialMinute = reminderMinute, is24Hour = true)
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            title = { Text("Reminder time") },
+            text = { TimePicker(state = timeState) },
+            confirmButton = {
+                TextButton(onClick = { reminderHour = timeState.hour; reminderMinute = timeState.minute; showTimePicker = false }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancel") } }
+        )
+    }
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text("Discard changes?") },
+            text = { Text("You have unsaved changes to this habit.") },
+            confirmButton = { TextButton(onClick = { showDiscardConfirm = false; onDismiss() }) { Text("Discard", color = MissedRed) } },
+            dismissButton = { TextButton(onClick = { showDiscardConfirm = false }) { Text("Keep editing") } }
+        )
+    }
+    if (showDeleteConfirm && habit != null && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete permanently?") },
+            text = { Text("This deletes ${habit.title} and all of its logs. This cannot be undone. Consider archiving instead.") },
+            confirmButton = {
+                Button(onClick = { showDeleteConfirm = false; onDelete(habit) }, colors = ButtonDefaults.buttonColors(containerColor = MissedRed)) { Text("Delete", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } }
+        )
+    }
+}
+
+@Composable
+private fun DayMaskRow(mask: Int, daysOfWeek: List<String>, selectedColor: Color, borderColor: Color, onMaskChange: (Int) -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        daysOfWeek.forEachIndexed { index, day ->
+            val isSelected = ((mask shr index) and 1) == 1
+            Box(
+                modifier = Modifier.size(40.dp).clip(CircleShape)
+                    .background(if (isSelected) selectedColor else MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, if (isSelected) borderColor else MaterialTheme.colorScheme.outline, CircleShape)
+                    .clickable { onMaskChange(mask xor (1 shl index)) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = day.take(1), fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

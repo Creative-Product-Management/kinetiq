@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,10 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.OrbitViolet
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KinetiqViolet
 import kotlinx.coroutines.delay
 
 enum class NudgeType {
@@ -62,7 +61,8 @@ data class InAppNudgeData(
     val type: NudgeType,
     val title: String,
     val subtitle: String,
-    val actionLabel: String? = null
+    val actionLabel: String? = null,
+    val targetHabitId: Long? = null
 )
 
 /**
@@ -109,7 +109,7 @@ fun InAppNudgeHero(
                             .size(8.dp)
                             .clip(CircleShape)
                             .background(
-                                if (index == safeIndex) TextPrimary else TextSecondary.copy(alpha = 0.4f)
+                                if (index == safeIndex) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                             )
                             .clickable { currentIndex = index }
                     )
@@ -141,7 +141,7 @@ fun InAppNudgeBanner(
             NudgeType.STACK_PRIMED -> Triple(
                 Icons.Default.ElectricBolt,
                 Brush.horizontalGradient(listOf(Color(0xFF4C2A78), Color(0xFF2A1848))),
-                OrbitViolet
+                KinetiqViolet
             )
             NudgeType.REST_SHIELD -> Triple(
                 Icons.Default.Shield,
@@ -151,7 +151,7 @@ fun InAppNudgeBanner(
             NudgeType.MOMENTUM_BOOST -> Triple(
                 Icons.Default.ElectricBolt,
                 Brush.horizontalGradient(listOf(Color(0xFF146348), Color(0xFF0E3328))),
-                OrbitEmerald
+                KinetiqEmerald
             )
             NudgeType.INSIGHT -> Triple(
                 Icons.Default.TipsAndUpdates,
@@ -206,7 +206,7 @@ fun InAppNudgeBanner(
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             lineHeight = 26.sp,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -214,7 +214,7 @@ fun InAppNudgeBanner(
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Dismiss",
-                            tint = TextSecondary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -225,7 +225,7 @@ fun InAppNudgeBanner(
                 Text(
                     text = nudge.subtitle,
                     fontSize = 15.sp,
-                    color = TextPrimary.copy(alpha = 0.92f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.92f),
                     lineHeight = 21.sp
                 )
 

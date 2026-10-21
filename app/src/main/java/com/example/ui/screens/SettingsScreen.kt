@@ -47,6 +47,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import kotlinx.coroutines.launch
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -72,26 +74,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.OrbitHabitApplication
+import com.example.KinetiqHabitApplication
 import com.example.R
 import com.example.ui.theme.CardSurface
 import com.example.ui.theme.CardSurfaceElevated
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.OrbitViolet
+import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KinetiqViolet
 import com.example.ui.theme.Fraunces
 import com.example.ui.theme.SurfaceBorder
 import com.example.ui.theme.TextMuted
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 import com.example.ui.theme.ThemeMode
-import com.example.ui.viewmodel.OrbitViewModel
+import com.example.ui.viewmodel.KinetiqViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: OrbitViewModel,
+    viewModel: KinetiqViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -106,8 +108,37 @@ fun SettingsScreen(
     val dailyEveningDigestHour by viewModel.dailyEveningDigestHour.collectAsStateWithLifecycle()
 
     var showResetDialog by remember { mutableStateOf(false) }
-    var showExportDialog by remember { mutableStateOf(false) }
-    var exportedJsonText by remember { mutableStateOf("") }
+    var backupPassphrase by remember { mutableStateOf("") }
+    var backupStatus by remember { mutableStateOf<String?>(null) }
+    val archivedHabits by viewModel.archivedHabits.collectAsStateWithLifecycle()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+
+    val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                runCatching {
+                    val bytes = viewModel.exportBackup(backupPassphrase.toCharArray())
+                    context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("Could not open file")
+                }.onSuccess { backupStatus = "Encrypted backup saved." }
+                    .onFailure { backupStatus = "Export failed: ${it.message}" }
+            }
+        }
+    }
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                runCatching {
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: error("Could not read file")
+                    viewModel.importBackup(bytes, backupPassphrase.toCharArray())
+                }.onSuccess { backupStatus = "Backup restored. All previous data was replaced." }
+                    .onFailure { backupStatus = "Import failed: ${it.message}" }
+            }
+        }
+    }
 
     val safeInsets = WindowInsets.safeDrawing
     Scaffold(
@@ -225,7 +256,7 @@ fun SettingsScreen(
                         checked = restShieldEnabled,
                         onCheckedChange = { viewModel.toggleRestShield(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = OrbitEmerald,
+                            checkedThumbColor = KinetiqEmerald,
                             checkedTrackColor = Color(0xFF0F3A2A)
                         ),
                         modifier = Modifier.testTag("rest_shield_toggle")
@@ -292,7 +323,7 @@ fun SettingsScreen(
                         Text(
                             text = if (weekStartsOnMonday) "Monday" else "Sunday",
                             fontSize = 11.sp,
-                            color = OrbitEmerald
+                            color = KinetiqEmerald
                         )
                     }
                     OutlinedButton(
@@ -331,18 +362,35 @@ fun SettingsScreen(
                         checked = dailyEveningDigestEnabled,
                         onCheckedChange = { viewModel.toggleDailyEveningDigest(it) },
                         colors = SwitchDefaults.colors(
-                            checkedThumbColor = OrbitEmerald,
+                            checkedThumbColor = KinetiqEmerald,
                             checkedTrackColor = Color(0xFF0F3A2A)
                         ),
                         modifier = Modifier.testTag("evening_digest_toggle")
                     )
                 }
 
+                if (dailyEveningDigestEnabled) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    OutlinedButton(
+                        onClick = { viewModel.setDailyEveningDigestHour((dailyEveningDigestHour + 1) % 24) },
+                        modifier = Modifier.fillMaxWidth().testTag("digest_hour_btn")
+                    ) {
+                        Text("Digest hour: ${String.format("%02d:00", dailyEveningDigestHour)} (tap to change)", fontSize = 12.sp)
+                    }
+                    if (!viewModel.canScheduleExactAlarms()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Exact alarms are not granted, so reminders may be slightly delayed by battery optimization. Kinetiq still delivers them inexactly.",
+                            fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
                     onClick = {
-                        OrbitHabitApplication.instance.notificationScheduler.sendTestNotification("Mindful Breathwork")
+                        viewModel.sendTestNotification()
                         Toast.makeText(context, "Test notification dispatched to status bar!", Toast.LENGTH_SHORT).show()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -363,10 +411,10 @@ fun SettingsScreen(
                     text = "100% Offline & Private",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = OrbitEmerald
+                    color = KinetiqEmerald
                 )
                 Text(
-                    text = "Your habits and logs live strictly on this device via encrypted Room SQLite. No tracking, no cloud servers, no account required.",
+                    text = "Your habits and logs are stored locally on this device in an on-device database and are never transmitted anywhere. There is no account, tracking, or cloud sync. Use an encrypted backup file below to move your data between devices.",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 15.sp
@@ -374,35 +422,57 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                OutlinedTextField(
+                    value = backupPassphrase,
+                    onValueChange = { backupPassphrase = it },
+                    label = { Text("Backup passphrase (min 8 characters)") },
+                    singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth().testTag("backup_passphrase_input")
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            exportedJsonText = viewModel.exportDataJson()
-                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            clipboard.setPrimaryClip(ClipData.newPlainText("Kinetiq Backup", exportedJsonText))
-                            showExportDialog = true
-                        },
+                        onClick = { exportLauncher.launch("kinetiq-backup.kqbak") },
+                        enabled = backupPassphrase.length >= 8,
                         modifier = Modifier.weight(1f).testTag("export_data_btn")
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Export JSON", fontSize = 12.sp)
+                        Text("Export Encrypted", fontSize = 12.sp)
                     }
 
                     OutlinedButton(
-                        onClick = {
-                            viewModel.reseedDemoData()
-                            Toast.makeText(context, "Demo habits reloaded!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.weight(1f).testTag("reseed_data_btn")
+                        onClick = { importLauncher.launch(arrayOf("*/*")) },
+                        enabled = backupPassphrase.length >= 8,
+                        modifier = Modifier.weight(1f).testTag("import_data_btn")
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Reload Demo", fontSize = 12.sp)
+                        Text("Import Backup", fontSize = 12.sp)
                     }
+                }
+                backupStatus?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(it, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = {
+                        viewModel.reseedDemoData()
+                        Toast.makeText(context, "Demo habits reloaded!", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth().testTag("reseed_data_btn")
+                ) {
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Reload Demo Habits", fontSize = 12.sp)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -420,7 +490,25 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. ABOUT
+            // 5. ARCHIVED HABITS
+            SettingsSectionHeader(title = "ARCHIVED HABITS")
+            SettingsCard {
+                if (archivedHabits.isEmpty()) {
+                    Text("No archived habits. Archiving a habit hides it without deleting its history.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    archivedHabits.forEach { habit ->
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(habit.title, fontSize = 13.sp, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface)
+                            TextButton(onClick = { viewModel.restoreHabit(habit) }) { Text("Restore") }
+                            TextButton(onClick = { viewModel.deleteHabit(habit) }) { Text("Delete", color = MissedRed) }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 6. ABOUT
             SettingsSectionHeader(title = "ABOUT")
             SettingsCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -455,30 +543,6 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
         }
-    }
-
-    // Export Dialog
-    if (showExportDialog) {
-        AlertDialog(
-            onDismissRequest = { showExportDialog = false },
-            title = { Text("Backup JSON Exported") },
-            text = {
-                Column {
-                    Text("Your habit definitions and log count have been copied to your device clipboard!")
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = exportedJsonText.take(200) + if (exportedJsonText.length > 200) "..." else "",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showExportDialog = false }) {
-                    Text("Done")
-                }
-            }
-        )
     }
 
     // Reset Confirmation Dialog

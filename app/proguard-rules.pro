@@ -1,21 +1,15 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Kinetiq release rules (R8). The app is offline-only; no network serializers beyond Moshi backup.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Room entities and database
+-keep class com.example.data.model.** { *; }
+-keep class com.example.data.db.** { *; }
+-keepclassmembers class * extends androidx.room.RoomDatabase { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Moshi backup payloads (reflection via KotlinJsonAdapterFactory + generated adapters)
+-keep class com.example.data.backup.** { *; }
+-keepclassmembers class com.example.data.backup.** { *; }
+-keep interface com.squareup.moshi.JsonAdapter { *; }
+-dontwarn org.jetbrains.annotations.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep line numbers for Play Console crash deobfuscation (mapping file is uploaded separately)
+-keepattributes SourceFile,LineNumberTable

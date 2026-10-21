@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,15 +50,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
-import com.example.ui.theme.CardSurface
-import com.example.ui.theme.CardSurfaceElevated
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.KinetiqEmerald
 
 @Composable
 fun QuickLogDialog(
@@ -81,24 +76,24 @@ fun QuickLogDialog(
     var frictionNotesText by remember { mutableStateOf(item.record?.notes ?: "") }
 
     val habitColor = remember(habit.colorHex) {
-        try { Color(android.graphics.Color.parseColor(habit.colorHex)) } catch (_: Exception) { OrbitEmerald }
+        com.example.ui.theme.parseHabitColor(habit.colorHex)
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CardSurface,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Column {
                 Text(
                     text = habit.title,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Logging for ${item.dateString}",
                     fontSize = 12.sp,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },
@@ -108,7 +103,7 @@ fun QuickLogDialog(
                     Text(
                         text = "Enter logged ${if (habit.unit.isNotBlank()) habit.unit else "amount"}:",
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -118,9 +113,9 @@ fun QuickLogDialog(
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = habitColor,
-                            unfocusedBorderColor = SurfaceBorder,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("custom_amount_input")
                     )
@@ -139,7 +134,7 @@ fun QuickLogDialog(
                     Text(
                         text = "What was the main obstacle today?",
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     val frictionOptions = listOf("Low Energy", "Time Crunch", "Travel / Away", "Distraction")
@@ -155,10 +150,10 @@ fun QuickLogDialog(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) MissedRed.copy(alpha = 0.25f) else CardSurfaceElevated)
+                                        .background(if (isSelected) MissedRed.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant)
                                         .border(
                                             1.dp,
-                                            if (isSelected) MissedRed else SurfaceBorder,
+                                            if (isSelected) MissedRed else MaterialTheme.colorScheme.outline,
                                             RoundedCornerShape(8.dp)
                                         )
                                         .clickable { selectedFrictionTag = tag }
@@ -169,7 +164,7 @@ fun QuickLogDialog(
                                         text = tag,
                                         fontSize = 11.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) TextPrimary else TextSecondary
+                                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -181,12 +176,12 @@ fun QuickLogDialog(
                     OutlinedTextField(
                         value = frictionNotesText,
                         onValueChange = { frictionNotesText = it },
-                        placeholder = { Text("Optional reflection note...", color = TextMuted, fontSize = 12.sp) },
+                        placeholder = { Text("Optional reflection note...", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MissedRed,
-                            unfocusedBorderColor = SurfaceBorder,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -238,7 +233,7 @@ fun QuickLogDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         ActionChoiceRow(
                             icon = Icons.Default.ElectricBolt,
-                            iconTint = TextPrimary,
+                            iconTint = MaterialTheme.colorScheme.onSurface,
                             title = "Custom Amount...",
                             subtitle = "Log exact numbers or partial reps",
                             onClick = { showCustomInput = true }
@@ -259,7 +254,7 @@ fun QuickLogDialog(
                         Spacer(modifier = Modifier.height(8.dp))
                         ActionChoiceRow(
                             icon = Icons.Default.Delete,
-                            iconTint = TextMuted,
+                            iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                             title = "Clear Entry",
                             subtitle = "Remove record for this date",
                             onClick = onClear
@@ -270,7 +265,7 @@ fun QuickLogDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = TextSecondary)
+                Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
@@ -288,8 +283,8 @@ private fun ActionChoiceRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(CardSurfaceElevated)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -314,12 +309,12 @@ private fun ActionChoiceRow(
                 text = title,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
-                color = TextMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

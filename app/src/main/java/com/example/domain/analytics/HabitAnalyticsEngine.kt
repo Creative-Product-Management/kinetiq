@@ -2,235 +2,167 @@ package com.example.domain.analytics
 
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitRecordEntity
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import com.example.domain.time.DateCodec
+import com.example.domain.time.KinetiqClock
+import com.example.domain.time.SystemKinetiqClock
+import java.time.DayOfWeek
+import java.time.LocalDate
 import kotlin.math.roundToInt
 
-enum class HeatmapCellState {
-    NONE,
-    MISSED,
-    REST_SHIELD,
-    FLOOR_SUSTAINED,
-    FULL_COMPLETED
-}
+enum class HeatmapCellState { NONE, MISSED, REST_SHIELD, FLOOR_SUSTAINED, FULL_COMPLETED }
 
 data class HeatmapCell(
     val dateString: String,
-    val dayOfWeek: Int, // 1=Sun, 2=Mon...
+    val dayOfWeek: Int, // ISO Mon=1..Sun=7
     val state: HeatmapCellState,
     val tooltip: String
 )
 
 data class HabitAnalyticsResult(
     val habitId: Long,
-    val habitStrengthPercent: Int, // 0 - 100
-    val trajectory: String, // "Accelerating", "Steady", "Rebuilding", "Starting"
+    val habitStrengthPercent: Int,
+    val trajectory: String,
     val currentStreak: Int,
     val bestStreak: Int,
     val totalTargetCompletions: Int,
     val totalFloorSustains: Int,
     val totalVolumeOrTime: Double,
     val heatmapCells: List<HeatmapCell>,
-    val dayOfWeekRates: List<Float>, // index 0..6 (Mon..Sun)
+    val dayOfWeekRates: List<Float>, // Mon..Sun
     val frictionCounts: Map<String, Int>,
-    val strengthHistory: List<Pair<String, Float>> // (date, score)
+    val strengthHistory: List<Pair<String, Float>>
 )
 
 object HabitAnalyticsEngine {
 
-    private val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
     fun calculateAnalytics(
         habit: HabitEntity,
-        records: List<HabitRecordEntity>
+        records: List<HabitRecordEntity>,
+        clock: KinetiqClock = SystemKinetiqClock,
+        restShieldEnabled: Boolean = true,
+        weekStartsOnMonday: Boolean = true
     ): HabitAnalyticsResult {
+        val today = clock.today()
+        val createdDate = DateCodec.millisToDate(habit.createdAt)
         val recordMap = records.associateBy { it.dateString }
-        val todayCal = Calendar.getInstance()
-        val todayStr = sdf.format(todayCal.time)
 
-        // 1. Calculate Habit Strength Progression using Exponential Moving Average
+        fun isRest(date: LocalDate): Boolean = restShieldEnabled && habit.isRestDay(date.dayOfWeek.value)
+        fun rec(date: LocalDate): HabitRecordEntity? = recordMap[DateCodec.format(date)]
+        fun isDone(date: LocalDate): Boolean = rec(date)?.let { it.isCompleted || it.isFloorSustained } == true
+
+        // 1) Habit strength EMA from habit creation (never before it existed)
         val historyDays = 90
-        val damping = 0.93f // ~10 day half-life
-        var currentStrength = 0.0f
-        val strengthProgression = mutableListOf<Pair<String, Float>>()
-
-        for (i in historyDays downTo 0) {
-            val pastCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -i) }
-            val dateStr = sdf.format(pastCal.time)
-            val dayOfWeek = pastCal.get(Calendar.DAY_OF_WEEK) // 1=Sun, 2=Mon..
-            // Convert Calendar day (Sun=1..Sat=7) to 1..7 (Mon=1..Sun=7)
-            val isoDay = if (dayOfWeek == Calendar.SUNDAY) 7 else dayOfWeek - 1
-
-            val record = recordMap[dateStr]
-            val isRest = habit.isRestDay(isoDay)
-
-            if (isRest && (record == null || (!record.isCompleted && !record.isFloorSustained))) {
-                // Scheduled Rest Shield: freeze decay!
-                currentStrength = currentStrength // maintain
+        val windowStart = maxOf(today.minusDays(historyDays.toLong()), createdDate)
+        val damping = 0.93f
+        var strength = 0.0f
+        val progression = mutableListOf<Pair<String, Float>>()
+        var date = windowStart
+        while (!date.isAfter(today)) {
+            if (isRest(date) && !isDone(date)) {
+                // shield: freeze decay
             } else {
-                val value = when {
-                    record?.isCompleted == true -> 1.0f
-                    record?.isFloorSustained == true -> 0.65f
+                val v = when {
+                    rec(date)?.isCompleted == true -> 1.0f
+                    rec(date)?.isFloorSustained == true -> 0.65f
                     else -> 0.0f
                 }
-                currentStrength = currentStrength * damping + (1f - damping) * value
+                strength = strength * damping + (1f - damping) * v
             }
-
-            if (i <= 30) {
-                strengthProgression.add(Pair(dateStr, currentStrength * 100f))
-            }
+            if (!date.isBefore(today.minusDays(30))) progression.add(DateCodec.format(date) to strength * 100f)
+            date = date.plusDays(1)
         }
-
-        val strengthPercent = (currentStrength * 100f).roundToInt().coerceIn(0, 100)
-
-        // Trajectory
-        val lastWeekStrength = if (strengthProgression.size >= 8) strengthProgression[strengthProgression.size - 8].second else 0f
+        val strengthPercent = (strength * 100f).roundToInt().coerceIn(0, 100)
+        val lastWeek = if (progression.size >= 8) progression[progression.size - 8].second else 0f
         val trajectory = when {
-            strengthPercent > lastWeekStrength + 3f -> "Accelerating"
-            strengthPercent < lastWeekStrength - 3f -> "Rebuilding"
+            strengthPercent > lastWeek + 3f -> "Accelerating"
+            strengthPercent < lastWeek - 3f -> "Rebuilding"
             strengthPercent >= 70 -> "Steady High"
             else -> "Forming Routine"
         }
 
-        // 2. Streaks calculation
-        var curStreak = 0
+        // 2) Streaks: shield days preserve but do not inflate the active-day count
+        var currentStreak = 0
+        var cursor = today
+        if (!isDone(cursor) && !isRest(cursor)) cursor = cursor.minusDays(1)
+        while (!cursor.isBefore(createdDate)) {
+            when {
+                isDone(cursor) -> { currentStreak++; cursor = cursor.minusDays(1) }
+                isRest(cursor) -> cursor = cursor.minusDays(1) // preserved, not counted
+                else -> break
+            }
+        }
         var bestStreak = 0
-        var tempStreak = 0
-        var totalTarget = 0
-        var totalFloor = 0
-        var totalVolume = 0.0
-
-        // Track backwards from today for current streak
-        var checkCal = Calendar.getInstance()
-        var streakBroken = false
-
-        // Check if today was logged, or if yesterday was the last log
-        val todayRecord = recordMap[todayStr]
-        val todayIsoDay = if (todayCal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) 7 else todayCal.get(Calendar.DAY_OF_WEEK) - 1
-        val isTodayDoneOrShield = (todayRecord?.isCompleted == true || todayRecord?.isFloorSustained == true || habit.isRestDay(todayIsoDay))
-
-        if (!isTodayDoneOrShield) {
-            // Check yesterday
-            checkCal.add(Calendar.DAY_OF_YEAR, -1)
-        }
-
-        while (!streakBroken && curStreak < 365) {
-            val dStr = sdf.format(checkCal.time)
-            val rec = recordMap[dStr]
-            val dow = checkCal.get(Calendar.DAY_OF_WEEK)
-            val iso = if (dow == Calendar.SUNDAY) 7 else dow - 1
-
-            if (rec?.isCompleted == true || rec?.isFloorSustained == true) {
-                curStreak++
-                checkCal.add(Calendar.DAY_OF_YEAR, -1)
-            } else if (habit.isRestDay(iso)) {
-                // Rest shield preserves streak
-                curStreak++
-                checkCal.add(Calendar.DAY_OF_YEAR, -1)
-            } else {
-                streakBroken = true
+        var temp = 0
+        var scan = maxOf(today.minusDays(180), createdDate)
+        while (!scan.isAfter(today)) {
+            when {
+                isDone(scan) -> { temp++; if (temp > bestStreak) bestStreak = temp }
+                isRest(scan) -> Unit // preserved, not counted
+                else -> temp = 0
             }
+            scan = scan.plusDays(1)
+        }
+        if (currentStreak > bestStreak) bestStreak = currentStreak
+
+        var totalTarget = 0; var totalFloor = 0; var totalVolume = 0.0
+        for (r in records) {
+            if (r.isCompleted) totalTarget++
+            if (r.isFloorSustained) totalFloor++
+            totalVolume += r.numericValue
         }
 
-        // Calculate all-time best streak & totals
-        val sortedDates = records.map { it.dateString }.sorted()
-        for (rec in records) {
-            if (rec.isCompleted) totalTarget++
-            if (rec.isFloorSustained) totalFloor++
-            totalVolume += rec.numericValue
+        // 3) Heatmap aligned to week start: 20 full weeks ending this week
+        val firstDayOfWeek = if (weekStartsOnMonday) DayOfWeek.MONDAY else DayOfWeek.SUNDAY
+        var heatStart = today.minusDays(139)
+        while (heatStart.dayOfWeek != firstDayOfWeek) heatStart = heatStart.minusDays(1)
+        if (heatStart.isBefore(createdDate)) {
+            // keep alignment; pre-creation cells render as NONE below via created check
         }
-
-        // Best streak scan across past 180 days
-        tempStreak = 0
-        val scanCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -180) }
-        while (scanCal.before(todayCal) || scanCal.get(Calendar.DAY_OF_YEAR) == todayCal.get(Calendar.DAY_OF_YEAR)) {
-            val dStr = sdf.format(scanCal.time)
-            val rec = recordMap[dStr]
-            val dow = scanCal.get(Calendar.DAY_OF_WEEK)
-            val iso = if (dow == Calendar.SUNDAY) 7 else dow - 1
-
-            if (rec?.isCompleted == true || rec?.isFloorSustained == true || habit.isRestDay(iso)) {
-                tempStreak++
-                if (tempStreak > bestStreak) bestStreak = tempStreak
-            } else {
-                tempStreak = 0
-            }
-            scanCal.add(Calendar.DAY_OF_YEAR, 1)
-        }
-        if (curStreak > bestStreak) bestStreak = curStreak
-
-        // 3. Year-round Heatmap Matrix (Past 140 days / 20 weeks for mobile display)
         val heatmapCells = mutableListOf<HeatmapCell>()
-        val matrixCal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -139) }
-
-        for (i in 0 until 140) {
-            val dStr = sdf.format(matrixCal.time)
-            val rec = recordMap[dStr]
-            val dow = matrixCal.get(Calendar.DAY_OF_WEEK)
-            val iso = if (dow == Calendar.SUNDAY) 7 else dow - 1
-            val isRest = habit.isRestDay(iso)
-
+        var h = heatStart
+        // 20 weeks * 7 from aligned start, capped at today-aligned week end
+        repeat(20 * 7) {
+            val r = rec(h)
+            val beforeCreation = h.isBefore(createdDate)
             val state = when {
-                rec?.isCompleted == true -> HeatmapCellState.FULL_COMPLETED
-                rec?.isFloorSustained == true -> HeatmapCellState.FLOOR_SUSTAINED
-                isRest -> HeatmapCellState.REST_SHIELD
-                rec != null && rec.frictionTag != null -> HeatmapCellState.MISSED
+                beforeCreation -> HeatmapCellState.NONE
+                r?.isCompleted == true -> HeatmapCellState.FULL_COMPLETED
+                r?.isFloorSustained == true -> HeatmapCellState.FLOOR_SUSTAINED
+                isRest(h) -> HeatmapCellState.REST_SHIELD
+                r != null && r.frictionTag != null -> HeatmapCellState.MISSED
                 else -> HeatmapCellState.NONE
             }
-
             val tooltip = when (state) {
-                HeatmapCellState.FULL_COMPLETED -> "$dStr: Completed Target"
-                HeatmapCellState.FLOOR_SUSTAINED -> "$dStr: Sustained Minimum Floor"
-                HeatmapCellState.REST_SHIELD -> "$dStr: Rest Day Shield"
-                HeatmapCellState.MISSED -> "$dStr: Skipped (${rec?.frictionTag ?: "Unspecified"})"
-                HeatmapCellState.NONE -> "$dStr: No entry"
+                HeatmapCellState.FULL_COMPLETED -> "${DateCodec.format(h)}: Completed Target"
+                HeatmapCellState.FLOOR_SUSTAINED -> "${DateCodec.format(h)}: Sustained Minimum Floor"
+                HeatmapCellState.REST_SHIELD -> "${DateCodec.format(h)}: Rest Day Shield"
+                HeatmapCellState.MISSED -> "${DateCodec.format(h)}: Skipped (${r?.frictionTag ?: "Unspecified"})"
+                HeatmapCellState.NONE -> "${DateCodec.format(h)}: No entry"
             }
-
-            heatmapCells.add(HeatmapCell(dStr, dow, state, tooltip))
-            matrixCal.add(Calendar.DAY_OF_YEAR, 1)
+            heatmapCells.add(HeatmapCell(DateCodec.format(h), h.dayOfWeek.value, state, tooltip))
+            h = h.plusDays(1)
         }
 
-        // 4. Day of Week Rates (Mon..Sun)
-        val dayCounts = IntArray(7)
-        val dayCompleted = IntArray(7)
-        for (i in 60 downTo 0) {
-            val cal = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -i) }
-            val dow = cal.get(Calendar.DAY_OF_WEEK)
-            val iso = if (dow == Calendar.SUNDAY) 6 else dow - 2 // 0=Mon..6=Sun
-            dayCounts[iso]++
-
-            val dStr = sdf.format(cal.time)
-            val rec = recordMap[dStr]
-            if (rec?.isCompleted == true || rec?.isFloorSustained == true) {
-                dayCompleted[iso]++
-            }
+        // 4) Day-of-week rates Mon..Sun over last 60 days (not before creation)
+        val dayCounts = IntArray(7); val dayCompleted = IntArray(7)
+        var d = maxOf(today.minusDays(60), createdDate)
+        while (!d.isAfter(today)) {
+            val idx = d.dayOfWeek.value - 1
+            dayCounts[idx]++
+            if (isDone(d)) dayCompleted[idx]++
+            d = d.plusDays(1)
         }
-        val dayRates = (0..6).map { idx ->
-            if (dayCounts[idx] > 0) (dayCompleted[idx].toFloat() / dayCounts[idx].toFloat()) else 0f
-        }
+        val dayRates = (0..6).map { i -> if (dayCounts[i] > 0) dayCompleted[i].toFloat() / dayCounts[i] else 0f }
 
-        // 5. Friction counts
         val frictionMap = mutableMapOf<String, Int>()
-        for (rec in records) {
-            rec.frictionTag?.let { tag ->
-                frictionMap[tag] = (frictionMap[tag] ?: 0) + 1
-            }
-        }
+        for (r in records) r.frictionTag?.let { frictionMap[it] = (frictionMap[it] ?: 0) + 1 }
 
         return HabitAnalyticsResult(
-            habitId = habit.id,
-            habitStrengthPercent = strengthPercent,
-            trajectory = trajectory,
-            currentStreak = curStreak,
-            bestStreak = bestStreak,
-            totalTargetCompletions = totalTarget,
-            totalFloorSustains = totalFloor,
-            totalVolumeOrTime = totalVolume,
-            heatmapCells = heatmapCells,
-            dayOfWeekRates = dayRates,
-            frictionCounts = frictionMap,
-            strengthHistory = strengthProgression
+            habitId = habit.id, habitStrengthPercent = strengthPercent, trajectory = trajectory,
+            currentStreak = currentStreak, bestStreak = bestStreak,
+            totalTargetCompletions = totalTarget, totalFloorSustains = totalFloor, totalVolumeOrTime = totalVolume,
+            heatmapCells = heatmapCells, dayOfWeekRates = dayRates, frictionCounts = frictionMap,
+            strengthHistory = progression
         )
     }
 }
