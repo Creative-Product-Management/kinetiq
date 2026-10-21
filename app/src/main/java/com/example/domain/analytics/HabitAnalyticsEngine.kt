@@ -35,6 +35,39 @@ data class HabitAnalyticsResult(
 
 object HabitAnalyticsEngine {
 
+    /**
+     * Momentum only (0..100), using the exact EMA from [calculateAnalytics]:
+     * target = 1.0, floor = 0.65, miss = 0.0, damping 0.93, last 90 days,
+     * rest-shield days frozen. Cheap enough to compute per habit card.
+     */
+    fun calculateMomentumPercent(
+        habit: HabitEntity,
+        records: List<HabitRecordEntity>,
+        clock: KinetiqClock = SystemKinetiqClock,
+        restShieldEnabled: Boolean = true
+    ): Int {
+        val today = clock.today()
+        val createdDate = DateCodec.millisToDate(habit.createdAt)
+        val recordMap = records.associateBy { it.dateString }
+        var strength = 0.0f
+        var date = maxOf(today.minusDays(90), createdDate)
+        while (!date.isAfter(today)) {
+            val record = recordMap[DateCodec.format(date)]
+            val isDone = record?.let { it.isCompleted || it.isFloorSustained } == true
+            val isRest = restShieldEnabled && habit.isRestDay(date.dayOfWeek.value)
+            if (!(isRest && !isDone)) {
+                val v = when {
+                    record?.isCompleted == true -> 1.0f
+                    record?.isFloorSustained == true -> 0.65f
+                    else -> 0.0f
+                }
+                strength = strength * 0.93f + (1f - 0.93f) * v
+            }
+            date = date.plusDays(1)
+        }
+        return (strength * 100f).roundToInt().coerceIn(0, 100)
+    }
+
     fun calculateAnalytics(
         habit: HabitEntity,
         records: List<HabitRecordEntity>,

@@ -30,6 +30,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
@@ -81,6 +84,7 @@ import com.example.ui.components.NotificationSettingsDialog
 import com.example.ui.components.QuickLogDialog
 import com.example.ui.theme.Fraunces
 import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.sortHabitCards
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -90,10 +94,13 @@ fun KinetiqDashboardScreen(
     onOpenEditor: (Long?) -> Unit = { if (it == null) viewModel.openNewHabitEditor() },
     onOpenSettings: () -> Unit = { viewModel.openSettings() },
     onOpenSort: () -> Unit = {},
+    onOpenFaqs: () -> Unit = {},
+    onOpenAbout: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var habitToDelete by remember { mutableStateOf<HabitEntity?>(null) }
     var viewMenuExpanded by remember { mutableStateOf(false) }
+    var mainMenuExpanded by remember { mutableStateOf(false) }
     val habitCards by viewModel.habitCards.collectAsStateWithLifecycle()
     val categories by viewModel.allCategories.collectAsStateWithLifecycle()
     val stacks by viewModel.allStacks.collectAsStateWithLifecycle()
@@ -104,6 +111,7 @@ fun KinetiqDashboardScreen(
     val quickLogTarget by viewModel.quickLogTarget.collectAsStateWithLifecycle()
     val inAppNudges by viewModel.inAppNudges.collectAsStateWithLifecycle()
     val showHeroSection by viewModel.showHeroSection.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val lastArchived by viewModel.lastArchived.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -114,8 +122,9 @@ fun KinetiqDashboardScreen(
         }
     }
 
-    val filteredCards = remember(habitCards, selectedCategoryId) {
-        if (selectedCategoryId == null) habitCards else habitCards.filter { it.habit.categoryId == selectedCategoryId }
+    val filteredCards = remember(habitCards, selectedCategoryId, sortMode) {
+        val byCategory = if (selectedCategoryId == null) habitCards else habitCards.filter { it.habit.categoryId == selectedCategoryId }
+        sortHabitCards(byCategory, sortMode)
     }
 
     Scaffold(
@@ -157,8 +166,30 @@ fun KinetiqDashboardScreen(
                     IconButton(onClick = { viewModel.openNotificationSettings() }, modifier = Modifier.testTag("open_notifications_btn")) {
                         Icon(imageVector = Icons.Default.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("open_settings_btn")) {
-                        Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box {
+                        IconButton(onClick = { mainMenuExpanded = true }, modifier = Modifier.testTag("open_main_menu_btn")) {
+                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        DropdownMenu(expanded = mainMenuExpanded, onDismissRequest = { mainMenuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                onClick = { mainMenuExpanded = false; onOpenSettings() },
+                                modifier = Modifier.testTag("open_settings_btn")
+                            )
+                            DropdownMenuItem(
+                                text = { Text("FAQs") },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                onClick = { mainMenuExpanded = false; onOpenFaqs() },
+                                modifier = Modifier.testTag("open_faqs_option")
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                leadingIcon = { Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                onClick = { mainMenuExpanded = false; onOpenAbout() },
+                                modifier = Modifier.testTag("open_about_option")
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
@@ -229,7 +260,7 @@ fun KinetiqDashboardScreen(
                     }
                     items(stackCards, key = { it.habit.id }) { card ->
                         HabitCard(
-                            habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays,
+                            habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
                             onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                             onDayClick = { viewModel.handleDayClick(card.habit, it) },
                             onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
@@ -242,7 +273,7 @@ fun KinetiqDashboardScreen(
             } else {
                 items(filteredCards, key = { it.habit.id }) { card ->
                     HabitCard(
-                        habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays,
+                        habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
                         onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                         onDayClick = { viewModel.handleDayClick(card.habit, it) },
                         onDayLongClick = { viewModel.openQuickLog(card.habit, it) },

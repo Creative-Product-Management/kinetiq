@@ -87,7 +87,8 @@ fun HabitCard(
     onArchiveClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    categoryName: String = "General"
+    categoryName: String = "General",
+    momentumPercent: Int = 0
 ) {
     val habitColor = remember(habit.colorHex) { parseHabitColor(habit.colorHex) }
     var menuExpanded by remember { mutableStateOf(false) }
@@ -147,6 +148,28 @@ fun HabitCard(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
+
+            // Kinetiq Momentum badge, left of the overflow menu
+            val momentumColor = when {
+                momentumPercent >= 70 -> com.example.ui.theme.KinetiqEmerald
+                momentumPercent >= 40 -> com.example.ui.theme.FloorGold
+                else -> com.example.ui.theme.KinetiqViolet
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(momentumColor.copy(alpha = 0.14f))
+                    .border(1.dp, momentumColor.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                    .semantics { contentDescription = "Momentum $momentumPercent percent" }
+                    .testTag("habit_momentum_${habit.id}")
+            ) {
+                Icon(Icons.Default.Bolt, contentDescription = null, tint = momentumColor, modifier = Modifier.size(13.dp))
+                Spacer(Modifier.width(3.dp))
+                Text("$momentumPercent%", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = momentumColor)
+            }
+            Spacer(Modifier.width(2.dp))
 
             Box {
                 IconButton(

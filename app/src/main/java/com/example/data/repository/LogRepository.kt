@@ -28,6 +28,12 @@ class LogRepository(
         )
     }
 
+    /** Last 91 days (today-90..today) for all habits — exactly the Momentum EMA window. */
+    fun momentumRecords(): Flow<List<LogEntry>> {
+        val today = clock.today()
+        return logEntryDao.getLogsBetween(DateCodec.format(today.minusDays(90)), DateCodec.format(today))
+    }
+
     fun recordsForHabit(habitId: Long): Flow<List<LogEntry>> = logEntryDao.getLogsForHabit(habitId)
 
     fun recordsForHabitWindow(habitId: Long, days: Int = DETAIL_WINDOW_DAYS): Flow<List<LogEntry>> =
