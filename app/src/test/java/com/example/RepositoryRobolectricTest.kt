@@ -61,6 +61,22 @@ class RepositoryRobolectricTest {
         db.close()
     }
 
+    @Test fun `saveOrder persists manual ordering`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = newDb(context)
+        val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
+        val a = habitRepo.saveHabit(Habit(title = "Alpha", orderIndex = 0))
+        val b = habitRepo.saveHabit(Habit(title = "Beta", orderIndex = 1))
+        val c = habitRepo.saveHabit(Habit(title = "Gamma", orderIndex = 2))
+        val habits = habitRepo.activeHabits.first()
+        assertEquals(listOf(a, b, c), habits.map { it.id })
+        habitRepo.saveOrder(listOf(habits[2], habits[0], habits[1]))
+        val reordered = habitRepo.activeHabits.first()
+        assertEquals(listOf(c, a, b), reordered.map { it.id })
+        assertEquals(listOf(0, 1, 2), reordered.map { it.orderIndex })
+        db.close()
+    }
+
     @Test fun `dashboard window only loads recent records`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)

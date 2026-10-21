@@ -23,6 +23,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ui.screens.HabitDetailAnalyticsScreen
 import com.example.ui.screens.HabitEditorSheet
+import com.example.ui.screens.HabitSortScreen
 import com.example.ui.screens.KinetiqDashboardScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.KinetiqHabitTheme
@@ -66,8 +67,12 @@ class MainActivity : ComponentActivity() {
                                 viewModel = viewModel,
                                 onOpenHabitDetail = { id -> navController.navigate("detail/$id") },
                                 onOpenEditor = { id -> navController.navigate(if (id == null) "editor" else "editor?habitId=$id") },
-                                onOpenSettings = { navController.navigate("settings") }
+                                onOpenSettings = { navController.navigate("settings") },
+                                onOpenSort = { navController.navigate("sort") }
                             )
+                        }
+                        composable("sort") {
+                            HabitSortScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
                         }
                         composable(
                             route = "detail/{habitId}",

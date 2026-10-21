@@ -34,6 +34,14 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.ViewStream
+import androidx.compose.material.icons.filled.SwapVert
+import androidx.compose.material.icons.filled.ViewStream
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -44,12 +52,15 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
+import com.example.data.model.HabitEntity
 import com.example.ui.components.ActiveTimerDialog
 import com.example.ui.components.HabitCard
 import com.example.ui.components.InAppNudgeHero
@@ -77,8 +89,11 @@ fun KinetiqDashboardScreen(
     onOpenHabitDetail: (Long) -> Unit = { viewModel.selectHabitById(it) },
     onOpenEditor: (Long?) -> Unit = { if (it == null) viewModel.openNewHabitEditor() },
     onOpenSettings: () -> Unit = { viewModel.openSettings() },
+    onOpenSort: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var habitToDelete by remember { mutableStateOf<HabitEntity?>(null) }
+    var viewMenuExpanded by remember { mutableStateOf(false) }
     val habitCards by viewModel.habitCards.collectAsStateWithLifecycle()
     val categories by viewModel.allCategories.collectAsStateWithLifecycle()
     val stacks by viewModel.allStacks.collectAsStateWithLifecycle()
@@ -88,6 +103,7 @@ fun KinetiqDashboardScreen(
     val activeTimerHabit by viewModel.activeTimerHabit.collectAsStateWithLifecycle()
     val quickLogTarget by viewModel.quickLogTarget.collectAsStateWithLifecycle()
     val inAppNudges by viewModel.inAppNudges.collectAsStateWithLifecycle()
+    val showHeroSection by viewModel.showHeroSection.collectAsStateWithLifecycle()
     val lastArchived by viewModel.lastArchived.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -119,8 +135,24 @@ fun KinetiqDashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.toggleStackView() }, modifier = Modifier.testTag("toggle_stack_view_btn")) {
-                        Icon(imageVector = if (isStackView) Icons.Default.ViewStream else Icons.AutoMirrored.Filled.ViewList, contentDescription = "Toggle Stack View", tint = if (isStackView) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box {
+                        IconButton(onClick = { viewMenuExpanded = true }, modifier = Modifier.testTag("toggle_stack_view_btn")) {
+                            Icon(imageVector = if (isStackView) Icons.Default.ViewStream else Icons.AutoMirrored.Filled.ViewList, contentDescription = "View and sort options", tint = if (isStackView) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        DropdownMenu(expanded = viewMenuExpanded, onDismissRequest = { viewMenuExpanded = false }) {
+                            DropdownMenuItem(
+                                text = { Text(if (isStackView) "Flat List" else "Group by Stack") },
+                                leadingIcon = { Icon(if (isStackView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.ViewStream, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                onClick = { viewMenuExpanded = false; viewModel.toggleStackView() },
+                                modifier = Modifier.testTag("view_mode_option")
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Sort") },
+                                leadingIcon = { Icon(Icons.Default.SwapVert, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                                onClick = { viewMenuExpanded = false; onOpenSort() },
+                                modifier = Modifier.testTag("open_sort_option")
+                            )
+                        }
                     }
                     IconButton(onClick = { viewModel.openNotificationSettings() }, modifier = Modifier.testTag("open_notifications_btn")) {
                         Icon(imageVector = Icons.Default.Notifications, contentDescription = "Notifications", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -151,11 +183,11 @@ fun KinetiqDashboardScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (inAppNudges.isNotEmpty()) {
+            if (showHeroSection && inAppNudges.isNotEmpty()) {
                 item {
                     InAppNudgeHero(
                         nudges = inAppNudges,
-                        onActionClick = { /* resolved below per-nudge via hero's single action; use first nudge target */ inAppNudges.firstOrNull()?.let { viewModel.handleNudgeAction(it); it.targetHabitId?.let(onOpenHabitDetail) } },
+                        onActionClick = { nudge -> viewModel.handleNudgeAction(nudge); nudge.targetHabitId?.let(onOpenHabitDetail) },
                         onDismiss = { id -> viewModel.dismissNudge(id) }
                     )
                 }
@@ -201,9 +233,9 @@ fun KinetiqDashboardScreen(
                             onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                             onDayClick = { viewModel.handleDayClick(card.habit, it) },
                             onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
-                            onMenuClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
-                            onMoveUp = { viewModel.moveHabit(card.habit, -1) },
-                            onMoveDown = { viewModel.moveHabit(card.habit, 1) }
+                            onEditClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
+                            onArchiveClick = { viewModel.archiveHabit(card.habit) },
+                            onDeleteClick = { habitToDelete = card.habit }
                         )
                     }
                 }
@@ -214,9 +246,9 @@ fun KinetiqDashboardScreen(
                         onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                         onDayClick = { viewModel.handleDayClick(card.habit, it) },
                         onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
-                        onMenuClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
-                        onMoveUp = { viewModel.moveHabit(card.habit, -1) },
-                        onMoveDown = { viewModel.moveHabit(card.habit, 1) }
+                        onEditClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
+                        onArchiveClick = { viewModel.archiveHabit(card.habit) },
+                        onDeleteClick = { habitToDelete = card.habit }
                     )
                 }
             }
@@ -243,6 +275,24 @@ fun KinetiqDashboardScreen(
 
     if (isNotificationSettingsOpen) {
         NotificationSettingsDialog(onDismiss = { viewModel.closeNotificationSettings() }, onSendTestNotification = { viewModel.sendTestNotification() })
+    }
+
+    habitToDelete?.let { habit ->
+        AlertDialog(
+            onDismissRequest = { habitToDelete = null },
+            icon = { Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("Delete permanently?") },
+            text = { Text("This deletes ${habit.title} and all of its logs. This cannot be undone. Consider archiving instead.") },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.deleteHabit(habit); habitToDelete = null },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    modifier = Modifier.testTag("confirm_delete_habit_btn")
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { habitToDelete = null }) { Text("Cancel") } },
+            modifier = Modifier.testTag("delete_habit_confirm_dialog")
+        )
     }
 }
 

@@ -28,3 +28,11 @@
 - [ ] Internal track -> closed track soak (watch Play Console Android vitals; no crash SDK by design)
 - [ ] Production staged rollout at 10%; halt criterion: crash-free sessions drop or reminder/backup defect reports
 - [ ] Rollback plan: halt rollout, ship hotfix with incremented versionCode (never reuse versionCode; never change applicationId after first upload)
+
+
+## Testing
+.\gradlew.bat lintDebug            # same as CI "Lint" step (0 errors required)
+.\gradlew.bat testDebugUnitTest    # same as CI "Unit tests" step (24 tests)
+.\gradlew.bat assembleDebug        # same as CI "Assemble debug" step
+Run all three exactly as CI does, in one go:
+.\gradlew.bat lintDebug testDebugUnitTest assembleDebug

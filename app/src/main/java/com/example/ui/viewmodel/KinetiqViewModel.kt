@@ -40,6 +40,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
+/** Day-scoped dismissal check: "<id>@yyyy-MM-dd". Bare legacy ids never match, so heroes reappear after upgrade. */
+fun isNudgeDismissed(nudgeId: String, dismissedIds: Set<String>, todayString: String): Boolean =
+    (nudgeId + "@" + todayString) in dismissedIds
+
+fun nudgeDismissalKey(nudgeId: String, todayString: String): String = nudgeId + "@" + todayString
+
 data class HabitCardUi(
     val habit: HabitEntity,
     val categoryName: String,
@@ -64,6 +70,8 @@ class KinetiqViewModel(
     val restShieldEnabled: StateFlow<Boolean> = settings.map { it.restShieldEnabled }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val dailyEveningDigestEnabled: StateFlow<Boolean> = settings.map { it.dailyEveningDigestEnabled }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val dailyEveningDigestHour: StateFlow<Int> = settings.map { it.dailyEveningDigestHour }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 21)
+    /** Permanent dashboard hero preference. Defaults to visible; Settings can hide it for good. */
+    val showHeroSection: StateFlow<Boolean> = settings.map { it.showHeroSection }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val allHabits: StateFlow<List<HabitEntity>> = habitRepository.activeHabits
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -132,7 +140,13 @@ class KinetiqViewModel(
 
     /** Derived (not hardcoded) nudges, with persisted dismissals filtered out. */
     val inAppNudges: StateFlow<List<InAppNudgeData>> = combine(allHabits, dashboardRecords, allStacks, settings) { habits, records, stacks, s ->
-        buildNudges(habits, records, stacks).filterNot { it.id in s.dismissedNudgeIds }
+        // Dismissals are scoped to a single day ("<id>@yyyy-MM-dd") so a nudge dismissed
+        // yesterday reappears in a new session today. Bare ids written by older versions
+        // are intentionally ignored, so previously dismissed heroes reappear after update.
+        val today = DateCodec.todayString()
+        buildNudges(habits, records, stacks).filterNot { nudge ->
+            isNudgeDismissed(nudge.id, s.dismissedNudgeIds, today)
+        }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
@@ -192,7 +206,18 @@ class KinetiqViewModel(
     fun closeTimer() { _activeTimerHabit.value = null }
     fun openQuickLog(habit: HabitEntity, item: DayStripItem) { _quickLogTarget.value = Pair(habit, item) }
     fun closeQuickLog() { _quickLogTarget.value = null }
-    fun dismissNudge(id: String) { viewModelScope.launch { settingsRepository.dismissNudge(id) } }
+    fun dismissNudge(id: String) {
+        // Day-scoped: dismissing hides this nudge for today only, never permanently.
+        viewModelScope.launch { settingsRepository.dismissNudge(nudgeDismissalKey(id, DateCodec.todayString())) }
+    }
+
+    fun setShowHeroSection(visible: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setShowHeroSection(visible)
+            // Re-enabling the hero starts fresh so it actually reappears at once.
+            if (visible) settingsRepository.clearDismissedNudges()
+        }
+    }
 
     fun handleNudgeAction(nudge: InAppNudgeData) {
         val target = nudge.targetHabitId?.let { id -> allHabits.value.firstOrNull { it.id == id } } ?: allHabits.value.firstOrNull()
@@ -263,6 +288,10 @@ class KinetiqViewModel(
 
     fun moveHabit(habit: HabitEntity, delta: Int) {
         viewModelScope.launch { habitRepository.moveHabit(habit, delta, allHabits.value) }
+    }
+
+    fun saveHabitOrder(ordered: List<HabitEntity>) {
+        viewModelScope.launch { habitRepository.saveOrder(ordered) }
     }
 
     fun sendTestNotification() { notificationScheduler.sendTestNotification("Mindful Breathwork") }

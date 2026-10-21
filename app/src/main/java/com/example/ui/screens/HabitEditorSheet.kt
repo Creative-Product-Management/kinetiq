@@ -375,7 +375,7 @@ fun HabitEditorSheet(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null, tint = Color.Black)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Habit", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Save", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp)
             }
 
             if (habit != null && onArchive != null) {
@@ -383,7 +383,7 @@ fun HabitEditorSheet(
                 OutlinedButton(onClick = { onArchive(habit) }, modifier = Modifier.fillMaxWidth().testTag("archive_habit_btn")) {
                     Icon(Icons.Default.Inventory2, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Archive Habit (restorable)")
+                    Text("Archive (Restorable)")
                 }
             }
             if (habit != null && onDelete != null) {
@@ -395,14 +395,14 @@ fun HabitEditorSheet(
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, tint = MissedRed)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Habit & Logs Permanently", color = MissedRed)
+                    Text("Delete", color = MissedRed)
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
             OutlinedButton(onClick = { requestDismiss() }, colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant), modifier = Modifier.fillMaxWidth().testTag("cancel_habit_btn")) {
                 Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Cancel & Discard", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Cancel Edit", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.height(36.dp))
         }

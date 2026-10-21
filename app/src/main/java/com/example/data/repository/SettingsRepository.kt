@@ -22,6 +22,8 @@ data class KinetiqSettings(
     val restShieldEnabled: Boolean = true,
     val dailyEveningDigestEnabled: Boolean = true,
     val dailyEveningDigestHour: Int = 21,
+    /** Permanent user preference for the dashboard hero. When false the hero never renders. */
+    val showHeroSection: Boolean = true,
     val dismissedNudgeIds: Set<String> = emptySet()
 )
 
@@ -36,6 +38,7 @@ class SettingsRepository(context: Context) {
             restShieldEnabled = p[REST_SHIELD] ?: true,
             dailyEveningDigestEnabled = p[DIGEST_ENABLED] ?: true,
             dailyEveningDigestHour = p[DIGEST_HOUR] ?: 21,
+            showHeroSection = p[SHOW_HERO] ?: true,
             dismissedNudgeIds = p[DISMISSED_NUDGES] ?: emptySet()
         )
     }
@@ -47,6 +50,8 @@ class SettingsRepository(context: Context) {
     suspend fun setDailyEveningDigestEnabled(v: Boolean) = store.edit { it[DIGEST_ENABLED] = v }
     suspend fun setDailyEveningDigestHour(v: Int) = store.edit { it[DIGEST_HOUR] = v.coerceIn(0, 23) }
     suspend fun dismissNudge(id: String) = store.edit { it[DISMISSED_NUDGES] = (it[DISMISSED_NUDGES] ?: emptySet()) + id }
+    suspend fun setShowHeroSection(v: Boolean) = store.edit { it[SHOW_HERO] = v }
+    suspend fun clearDismissedNudges() = store.edit { it.remove(DISMISSED_NUDGES) }
 
     companion object {
         private val THEME = stringPreferencesKey("theme_mode")
@@ -56,5 +61,6 @@ class SettingsRepository(context: Context) {
         private val DIGEST_ENABLED = booleanPreferencesKey("digest_enabled")
         private val DIGEST_HOUR = intPreferencesKey("digest_hour")
         private val DISMISSED_NUDGES = stringSetPreferencesKey("dismissed_nudges")
+        private val SHOW_HERO = booleanPreferencesKey("show_hero_section")
     }
 }
