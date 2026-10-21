@@ -1,11 +1,20 @@
 package com.example.data.model
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "log_entries",
+    foreignKeys = [
+        ForeignKey(
+            entity = Habit::class,
+            parentColumns = ["id"],
+            childColumns = ["habitId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
     indices = [
         Index(value = ["habitId", "dateString"], unique = true),
         Index(value = ["dateString"]),
@@ -19,9 +28,9 @@ data class LogEntry(
     val dateString: String, // Format: YYYY-MM-DD
     val isCompleted: Boolean = false,
     val isFloorSustained: Boolean = false,
-    val numericValue: Double = 0.0, // For NUMERIC targets (e.g. 2500 ml, 30 reps)
-    val durationSeconds: Int = 0,   // For TIMER habits (e.g. 300 seconds of meditation)
-    val tallyCount: Int = 0,        // For multi-check TALLIES (e.g. 1, 2, 3 sprints)
+    val numericValue: Double = 0.0,
+    val durationSeconds: Int = 0,
+    val tallyCount: Int = 0,
     val frictionTag: String? = null,
     val notes: String = "",
     val recordedAt: Long = System.currentTimeMillis()

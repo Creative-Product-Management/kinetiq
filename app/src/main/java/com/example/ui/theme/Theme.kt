@@ -22,16 +22,16 @@ enum class ThemeMode(val displayName: String) {
     SYSTEM("System Default")
 }
 
-private val OrbitDarkColorScheme = darkColorScheme(
-    primary = OrbitEmerald,
+private val KinetiqDarkColorScheme = darkColorScheme(
+    primary = KinetiqEmerald,
     onPrimary = Color.Black,
     primaryContainer = CardSurfaceElevated,
-    onPrimaryContainer = OrbitEmeraldGlow,
-    secondary = OrbitViolet,
+    onPrimaryContainer = KinetiqEmeraldGlow,
+    secondary = KinetiqViolet,
     onSecondary = Color.White,
     secondaryContainer = CardSurfaceElevated,
     onSecondaryContainer = Color(0xFFDDD6FE),
-    tertiary = OrbitAmber,
+    tertiary = KinetiqAmber,
     onTertiary = Color.Black,
     background = VoidBackground,
     onBackground = TextPrimary,
@@ -44,7 +44,7 @@ private val OrbitDarkColorScheme = darkColorScheme(
     onError = Color.White
 )
 
-private val OrbitLightColorScheme = lightColorScheme(
+private val KinetiqLightColorScheme = lightColorScheme(
     primary = Color(0xFF059669),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD1FAE5),
@@ -67,7 +67,7 @@ private val OrbitLightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun OrbitHabitTheme(
+fun KinetiqHabitTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
@@ -77,7 +77,7 @@ fun OrbitHabitTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    val colorScheme = if (isDark) OrbitDarkColorScheme else OrbitLightColorScheme
+    val colorScheme = if (isDark) KinetiqDarkColorScheme else KinetiqLightColorScheme
     val view = LocalView.current
 
     LaunchedEffect(isDark, colorScheme.background) {
@@ -112,5 +112,5 @@ private tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
 fun MyApplicationTheme(
     content: @Composable () -> Unit
 ) {
-    OrbitHabitTheme(themeMode = ThemeMode.DARK, content = content)
+    KinetiqHabitTheme(themeMode = ThemeMode.DARK, content = content)
 }

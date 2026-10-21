@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,20 +28,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.OrbitEmeraldGlow
-import com.example.ui.theme.OrbitViolet
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KinetiqEmeraldGlow
+import com.example.ui.theme.KinetiqViolet
 
 @Composable
-fun OrbitGauge(
+fun KinetiqGauge(
     strengthPercent: Int,
     trajectory: String,
     modifier: Modifier = Modifier,
-    habitColor: Color = OrbitEmerald
+    habitColor: Color = KinetiqEmerald
 ) {
     val animatedPercent = remember { Animatable(0f) }
 
@@ -51,13 +48,14 @@ fun OrbitGauge(
         )
     }
 
-    val primaryAccent = if (habitColor != Color.Unspecified) habitColor else OrbitEmerald
+    val primaryAccent = if (habitColor != Color.Unspecified) habitColor else KinetiqEmerald
     val gradientColors = listOf(
         primaryAccent,
-        OrbitViolet,
-        OrbitEmeraldGlow
+        KinetiqViolet,
+        KinetiqEmeraldGlow
     )
 
+    val trackColor = MaterialTheme.colorScheme.outline
     Box(
         modifier = modifier.size(190.dp),
         contentAlignment = Alignment.Center
@@ -69,7 +67,7 @@ fun OrbitGauge(
 
             // Background track
             drawArc(
-                color = SurfaceBorder,
+                color = trackColor,
                 startAngle = 135f,
                 sweepAngle = 270f,
                 useCenter = false,
@@ -101,20 +99,20 @@ fun OrbitGauge(
                 text = "${animatedPercent.value.toInt()}%",
                 fontSize = 34.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "KINETIQ MOMENTUM",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,
-                color = TextMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
             val badgeColor = when {
-                strengthPercent >= 70 -> OrbitEmerald
+                strengthPercent >= 70 -> KinetiqEmerald
                 strengthPercent >= 40 -> FloorGold
-                else -> OrbitViolet
+                else -> KinetiqViolet
             }
             Text(
                 text = trajectory.uppercase(),

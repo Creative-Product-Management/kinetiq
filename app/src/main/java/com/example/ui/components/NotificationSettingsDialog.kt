@@ -21,13 +21,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,19 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
-import com.example.OrbitHabitApplication
-import com.example.ui.theme.CardSurface
-import com.example.ui.theme.CardSurfaceElevated
-import com.example.ui.theme.OrbitEmerald
-import com.example.ui.theme.OrbitViolet
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
+import com.example.KinetiqHabitApplication
+import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KinetiqViolet
 
 @Composable
 fun NotificationSettingsDialog(
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSendTestNotification: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var permissionGranted by remember {
@@ -84,20 +80,20 @@ fun NotificationSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CardSurface,
+        containerColor = MaterialTheme.colorScheme.surface,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(OrbitViolet.copy(alpha = 0.2f)),
+                        .background(KinetiqViolet.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.NotificationsActive,
                         contentDescription = "Notifications",
-                        tint = OrbitViolet,
+                        tint = KinetiqViolet,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -106,7 +102,7 @@ fun NotificationSettingsDialog(
                     text = "Habit Reminders",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         },
@@ -117,8 +113,8 @@ fun NotificationSettingsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(CardSurfaceElevated)
-                        .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
                     Column {
@@ -126,13 +122,13 @@ fun NotificationSettingsDialog(
                             text = "⚡ Actionable Lock-Screen Logging",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = OrbitEmerald
+                            color = KinetiqEmerald
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "When a habit reminder fires, you can log 'Done (Target)' or 'Sustain (Floor)' directly from your notification drawer without even opening the app!",
                             fontSize = 11.sp,
-                            color = TextSecondary,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 15.sp
                         )
                     }
@@ -145,7 +141,7 @@ fun NotificationSettingsDialog(
                         onClick = {
                             permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = OrbitViolet),
+                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqViolet),
                         modifier = Modifier.fillMaxWidth().testTag("request_notification_permission_btn")
                     ) {
                         Icon(imageVector = Icons.Default.Notifications, contentDescription = null)
@@ -157,13 +153,13 @@ fun NotificationSettingsDialog(
 
                 Button(
                     onClick = {
-                        OrbitHabitApplication.instance.notificationScheduler.sendTestNotification("Mindful Breathwork")
+                        onSendTestNotification()
                         testSentConfirmation = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = OrbitEmerald),
+                    colors = ButtonDefaults.buttonColors(containerColor = KinetiqEmerald),
                     modifier = Modifier.fillMaxWidth().testTag("send_test_notification_btn")
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = null, tint = Color.Black)
+                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.Black)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Send Test Notification Now", color = Color.Black, fontWeight = FontWeight.Bold)
                 }
@@ -174,14 +170,14 @@ fun NotificationSettingsDialog(
                         text = "✓ Notification dispatched! Check your status bar to try the 'Done', 'Floor', and 'Snooze' actions.",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
-                        color = OrbitEmerald
+                        color = KinetiqEmerald
                     )
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = TextSecondary)
+                Text("Close", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )

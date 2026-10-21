@@ -1,22 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Kinetiq
 
-# Run and deploy your AI Studio app
+Offline-first Android habit tracker built around elastic goals: every habit has a
+target and a minimum "floor", scheduled rest days that shield your momentum, routine
+stacks, and analytics that show strength, streaks, and friction patterns.
 
-This contains everything you need to run your app locally.
+**Privacy model:** Kinetiq is strictly front-end only. There is no account, server,
+sync, or tracking. Habits and logs live in an on-device Room database and never leave
+the phone unless you export a passphrase-encrypted backup file yourself.
 
-View your app in AI Studio: https://ai.studio/apps/f362ec23-87d0-439b-b1c2-132fa1e97a69
+## Run locally
 
-## Run Locally
+**Prerequisites:** [Android Studio](https://developer.android.com/studio) (JDK 17)
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+1. Open Android Studio, select **Open**, and choose this directory.
+2. Let Gradle sync finish.
+3. Run the `app` configuration on an emulator or physical device.
 
+```bash
+./gradlew testDebugUnitTest assembleDebug
+```
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+## Architecture
+
+- `data/db` — Room DAOs (habits/stacks, log entries, categories), schema v3 with explicit migrations (`app/schemas`)
+- `data/repository` — `HabitRepository`, `LogRepository` (windowed queries, atomic/idempotent writes), `SettingsRepository` (DataStore)
+- `data/backup` — passphrase-encrypted (AES-GCM + PBKDF2) export/import via the system file picker
+- `domain/analytics` — deterministic, clock-injected habit analytics with an in-memory memo cache
+- `domain/time` — `KinetiqClock` / `DateCodec` (`yyyy-MM-dd`, locale-independent)
+- `notification` — repeating reminders honoring reminder/rest days, boot re-arming, Play-compliant exact-alarm fallback
+- `ui` — Jetpack Compose + Navigation Compose, Material 3 theming (light/dark/system)
+
+Room is the single source of truth. In-memory `StateFlow` windows (14 days for the
+dashboard, per-habit history for detail) keep the UI instant without duplicating data.
+
+## Release
+
+See [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). Release builds use R8 and
+require the upload key via `KEYSTORE_PATH` / `STORE_PASSWORD` / `KEY_PASSWORD`
+environment variables (never committed).

@@ -1,9 +1,28 @@
 package com.example.data.model
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "habits")
+@Entity(
+    tableName = "habits",
+    foreignKeys = [
+        ForeignKey(
+            entity = Category::class,
+            parentColumns = ["id"],
+            childColumns = ["categoryId"],
+            onDelete = ForeignKey.SET_NULL
+        ),
+        ForeignKey(
+            entity = RoutineStackEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["routineStackId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index(value = ["categoryId"]), Index(value = ["routineStackId"])]
+)
 data class Habit(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -11,11 +30,10 @@ data class Habit(
     val description: String = "",
     val cueTrigger: String = "",
     val modality: HabitModality = HabitModality.YES_NO,
-    val targetValue: Double = 1.0,     // Numerical target, timer minutes, or tally target
-    val floorValue: Double? = null,    // Elastic minimum viable goal
-    val unit: String = "",             // Measurement unit (e.g., "ml", "mins", "reps", "sprints")
-    val categoryId: Long? = null,      // Foreign key reference to Category
-    val category: String = "General",
+    val targetValue: Double = 1.0,
+    val floorValue: Double? = null,
+    val unit: String = "",
+    val categoryId: Long? = null,
     val colorHex: String = "#10B981",
     val iconName: String = "Sparkles",
     val reminderHour: Int? = null,

@@ -34,6 +34,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -53,19 +54,12 @@ import com.example.data.model.HabitRecordEntity
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.analytics.HabitAnalyticsResult
 import com.example.ui.components.HeatmapMatrix
-import com.example.ui.components.OrbitGauge
+import com.example.ui.components.KinetiqGauge
 import com.example.ui.components.WeeklyBarChart
-import com.example.ui.theme.CardSurface
-import com.example.ui.theme.CardSurfaceElevated
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.OrbitEmerald
+import com.example.ui.theme.KinetiqEmerald
 import com.example.ui.theme.RestShieldBlue
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
-import com.example.ui.theme.VoidBackground
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,16 +68,17 @@ fun HabitDetailAnalyticsScreen(
     records: List<HabitRecordEntity>,
     onBack: () -> Unit,
     onEditHabit: () -> Unit,
-    onDeleteRecord: (String) -> Unit
+    onDeleteRecord: (String) -> Unit,
+    analyticsResult: HabitAnalyticsResult? = null,
+    restShieldEnabled: Boolean = true,
+    weekStartsOnMonday: Boolean = true
 ) {
     BackHandler { onBack() }
 
-    val habitColor = remember(habit.colorHex) {
-        try { Color(android.graphics.Color.parseColor(habit.colorHex)) } catch (_: Exception) { OrbitEmerald }
-    }
+    val habitColor = remember(habit.colorHex) { com.example.ui.theme.parseHabitColor(habit.colorHex) }
 
-    val analytics: HabitAnalyticsResult = remember(habit, records) {
-        HabitAnalyticsEngine.calculateAnalytics(habit, records)
+    val analytics: HabitAnalyticsResult = analyticsResult ?: remember(habit, records, restShieldEnabled, weekStartsOnMonday) {
+        HabitAnalyticsEngine.calculateAnalytics(habit, records, restShieldEnabled = restShieldEnabled, weekStartsOnMonday = weekStartsOnMonday)
     }
 
     Scaffold(
@@ -95,13 +90,13 @@ fun HabitDetailAnalyticsScreen(
                             text = habit.title,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         if (habit.cueTrigger.isNotBlank()) {
                             Text(
                                 text = "⚡ ${habit.cueTrigger}",
                                 fontSize = 11.sp,
-                                color = TextMuted
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -111,7 +106,7 @@ fun HabitDetailAnalyticsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = TextPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -120,15 +115,15 @@ fun HabitDetailAnalyticsScreen(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Habit",
-                            tint = TextPrimary
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = VoidBackground),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 windowInsets = WindowInsets.statusBars
             )
         },
-        containerColor = VoidBackground,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing
     ) { paddingValues ->
         LazyColumn(
@@ -141,17 +136,17 @@ fun HabitDetailAnalyticsScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                // Circular Orbit Momentum Gauge Card
+                // Circular Kinetiq Momentum Gauge Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(CardSurface)
-                        .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                         .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    OrbitGauge(
+                    KinetiqGauge(
                         strengthPercent = analytics.habitStrengthPercent,
                         trajectory = analytics.trajectory,
                         habitColor = habitColor
@@ -176,7 +171,7 @@ fun HabitDetailAnalyticsScreen(
                         title = "BEST STREAK",
                         value = "${analytics.bestStreak}",
                         unit = "days record",
-                        color = OrbitEmerald,
+                        color = KinetiqEmerald,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -206,7 +201,8 @@ fun HabitDetailAnalyticsScreen(
             item {
                 HeatmapMatrix(
                     cells = analytics.heatmapCells,
-                    habitColor = habitColor
+                    habitColor = habitColor,
+                    weekStartsOnMonday = weekStartsOnMonday
                 )
             }
 
@@ -225,8 +221,8 @@ fun HabitDetailAnalyticsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(CardSurface)
-                            .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
                             .padding(16.dp)
                     ) {
                         Text(
@@ -240,7 +236,7 @@ fun HabitDetailAnalyticsScreen(
                         Text(
                             text = "Root causes identified when habits were skipped:",
                             fontSize = 11.sp,
-                            color = TextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -260,13 +256,13 @@ fun HabitDetailAnalyticsScreen(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = tag, fontSize = 13.sp, color = TextPrimary)
+                                    Text(text = tag, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                                 }
                                 Text(
                                     text = "$count times",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextSecondary
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -281,7 +277,7 @@ fun HabitDetailAnalyticsScreen(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp,
-                    color = TextMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -291,7 +287,7 @@ fun HabitDetailAnalyticsScreen(
                     Text(
                         text = "No recorded logs yet for this habit.",
                         fontSize = 12.sp,
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else {
@@ -300,8 +296,8 @@ fun HabitDetailAnalyticsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(CardSurfaceElevated)
-                            .border(1.dp, SurfaceBorder, RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -311,7 +307,7 @@ fun HabitDetailAnalyticsScreen(
                                 rec.isCompleted -> habitColor
                                 rec.isFloorSustained -> FloorGold
                                 rec.frictionTag != null -> MissedRed
-                                else -> TextMuted
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                             Box(
                                 modifier = Modifier
@@ -329,14 +325,14 @@ fun HabitDetailAnalyticsScreen(
 
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
-                                Text(text = rec.dateString, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                                Text(text = rec.dateString, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                                 val desc = when {
                                     rec.isCompleted -> "Target completed"
                                     rec.isFloorSustained -> "Sustained minimum floor"
                                     rec.frictionTag != null -> "Friction: ${rec.frictionTag}"
                                     else -> "Logged entry"
                                 }
-                                Text(text = desc, fontSize = 11.sp, color = TextMuted)
+                                Text(text = desc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
 
@@ -344,7 +340,7 @@ fun HabitDetailAnalyticsScreen(
                             onClick = { onDeleteRecord(rec.dateString) },
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = TextMuted, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -366,8 +362,8 @@ private fun MetricStatCard(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
-            .background(CardSurface)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(14.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
             .padding(14.dp)
     ) {
         Text(
@@ -375,7 +371,7 @@ private fun MetricStatCard(
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp,
-            color = TextMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -387,7 +383,7 @@ private fun MetricStatCard(
         Text(
             text = unit,
             fontSize = 11.sp,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

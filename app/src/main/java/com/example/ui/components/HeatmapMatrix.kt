@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,21 +33,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.domain.analytics.HeatmapCell
 import com.example.domain.analytics.HeatmapCellState
-import com.example.ui.theme.CardSurface
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.OrbitEmerald
+import com.example.ui.theme.KinetiqEmerald
 import com.example.ui.theme.RestShieldBlue
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 
 @Composable
 fun HeatmapMatrix(
     cells: List<HeatmapCell>,
-    habitColor: Color = OrbitEmerald,
-    modifier: Modifier = Modifier
+    habitColor: Color = KinetiqEmerald,
+    modifier: Modifier = Modifier,
+    weekStartsOnMonday: Boolean = true
 ) {
     val scrollState = rememberScrollState()
     var selectedCell by remember { mutableStateOf<HeatmapCell?>(null) }
@@ -60,14 +57,14 @@ fun HeatmapMatrix(
     // Group cells into 7 rows (Mon..Sun)
     // cells are 140 days, each week has 7 days
     val weeks = cells.chunked(7)
-    val dayLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+    val dayLabels = if (weekStartsOnMonday) listOf("M", "T", "W", "T", "F", "S", "S") else listOf("S", "M", "T", "W", "T", "F", "S")
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(CardSurface)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .padding(16.dp)
     ) {
         Row(
@@ -76,11 +73,11 @@ fun HeatmapMatrix(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "ANNUAL MOMENTUM MATRIX",
+                text = "LAST 20 WEEKS",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
-                color = TextMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             // Legend
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -111,7 +108,7 @@ fun HeatmapMatrix(
                             text = label,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Medium,
-                            color = TextMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -138,7 +135,7 @@ fun HeatmapMatrix(
 
                             Box(
                                 modifier = Modifier
-                                    .size(14.dp)
+                                    .size(18.dp)
                                     .clip(RoundedCornerShape(3.dp))
                                     .background(cellColor)
                                     .clickable { selectedCell = cell }
@@ -162,7 +159,7 @@ fun HeatmapMatrix(
                 Text(
                     text = cell.tooltip,
                     fontSize = 12.sp,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -183,7 +180,7 @@ private fun LegendIndicator(color: Color, label: String) {
         Text(
             text = label,
             fontSize = 9.sp,
-            color = TextSecondary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.SelfImprovement
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -38,6 +41,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,14 +50,10 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
-import com.example.ui.theme.CardSurface
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.OrbitEmerald
+import com.example.ui.theme.parseHabitColor
+import com.example.ui.theme.KinetiqEmerald
 import com.example.ui.theme.RestShieldBlue
-import com.example.ui.theme.SurfaceBorder
-import com.example.ui.theme.TextMuted
-import com.example.ui.theme.TextPrimary
-import com.example.ui.theme.TextSecondary
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -75,15 +76,12 @@ fun HabitCard(
     onDayClick: (DayStripItem) -> Unit,
     onDayLongClick: (DayStripItem) -> Unit,
     onMenuClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    categoryName: String = "General",
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null
 ) {
-    val habitColor = remember(habit.colorHex) {
-        try {
-            Color(android.graphics.Color.parseColor(habit.colorHex))
-        } catch (_: Exception) {
-            OrbitEmerald
-        }
-    }
+    val habitColor = remember(habit.colorHex) { parseHabitColor(habit.colorHex) }
 
     val iconVector: ImageVector = when (habit.iconName) {
         "SelfImprovement" -> Icons.Default.SelfImprovement
@@ -99,8 +97,8 @@ fun HabitCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(CardSurface)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
             .combinedClickable(
                 onClick = onCardClick,
                 onLongClick = onMenuClick
@@ -137,7 +135,7 @@ fun HabitCard(
                         text = habit.title,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
@@ -150,10 +148,10 @@ fun HabitCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = habit.category,
+                            text = categoryName,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -163,7 +161,7 @@ fun HabitCard(
                     Text(
                         text = "⚡ Cue: ${habit.cueTrigger}",
                         fontSize = 11.sp,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -180,19 +178,29 @@ fun HabitCard(
                     Text(
                         text = targetText + floorText,
                         fontSize = 11.sp,
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
+            if (onMoveUp != null) {
+                IconButton(onClick = onMoveUp, modifier = Modifier.size(32.dp)) {
+                    Icon(imageVector = Icons.Default.KeyboardArrowUp, contentDescription = "Move habit up", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
+            if (onMoveDown != null) {
+                IconButton(onClick = onMoveDown, modifier = Modifier.size(32.dp)) {
+                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = "Move habit down", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
             IconButton(
                 onClick = onMenuClick,
-                modifier = Modifier.size(32.dp).testTag("habit_menu_${habit.id}")
+                modifier = Modifier.size(48.dp).testTag("habit_menu_${habit.id}")
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Options",
-                    tint = TextSecondary,
+                    contentDescription = "Edit habit options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -213,25 +221,33 @@ fun HabitCard(
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(42.dp)
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text(
                         text = item.dayLetter,
                         fontSize = 10.sp,
                         fontWeight = if (item.isToday) FontWeight.Bold else FontWeight.Normal,
-                        color = if (item.isToday) habitColor else TextMuted
+                        color = if (item.isToday) habitColor else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = item.dayNumber,
                         fontSize = 9.sp,
-                        color = if (item.isToday) TextPrimary else TextMuted
+                        color = if (item.isToday) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Tactile 48dp target container
+                    // 44dp visual target inside a labelled, screen-reader friendly control
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(44.dp)
+                            .semantics {
+                                contentDescription = "${habit.title} ${item.dateString}: " + when {
+                                    isCompleted -> "completed"
+                                    isFloor -> "floor sustained"
+                                    isRestDay -> "rest day"
+                                    else -> "not logged"
+                                }
+                            }
                             .clip(CircleShape)
                             .background(
                                 when {
@@ -248,8 +264,8 @@ fun HabitCard(
                                     isCompleted -> habitColor
                                     isFloor -> FloorGold
                                     isRestDay -> RestShieldBlue.copy(alpha = 0.6f)
-                                    item.isToday -> SurfaceBorder.copy(alpha = 0.8f)
-                                    else -> SurfaceBorder.copy(alpha = 0.4f)
+                                    item.isToday -> MaterialTheme.colorScheme.outline.copy(alpha = 0.8f)
+                                    else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                                 },
                                 shape = CircleShape
                             )
