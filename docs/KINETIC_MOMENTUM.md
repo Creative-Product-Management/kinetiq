@@ -1,4 +1,4 @@
-# Kinetiq Momentum Score
+# Kinetic Momentum Score
 
 Every habit has a **Momentum score (0–100%)**, shown as the gauge on the
 habit detail screen. It answers one question: *"How strong is this habit
@@ -76,14 +76,14 @@ what makes habits stick.
 
 ## Basis & limitations
 
-**The math is standard; the exact recipe is Kinetiq's own.** There is
+**The math is standard; the exact recipe is Kinetic's own.** There is
 no universally accepted "habit momentum score" standard.
 
 - **Standard technique.** Momentum is an *exponentially weighted moving
   average* (EWMA/EMA), a well-established method in statistics, signal
   processing, and time-series analysis. Its defining property — recent
   behaviour matters more than older behaviour — is exactly what a
-  "current strength" score needs. With Kinetiq's weighting, the score
+  "current strength" score needs. With Kinetic's weighting, the score
   has an effective memory of roughly 28 days and a decay half-life of
   about 9.5 days after missed days.
 - **Philosophy aligned with behaviour-change practice.** Several choices
@@ -97,7 +97,7 @@ no universally accepted "habit momentum score" standard.
     occasion did not materially affect habit formation.
   - The ~90-day horizon is loosely consistent with habit-formation
     timescales: Lally et al. found automaticity took on average ~66
-    days, with a very wide range (18–254 days). Kinetiq's score reaches
+    days, with a very wide range (18–254 days). Kinetic's score reaches
     ~89% after 30 perfect days and matures over the following weeks.
 - **What is *not* standardised.** The specific numbers — 0.93 damping,
   floor = 0.65, "Steady High" at 70%, trajectory thresholds of ±3 points
@@ -112,7 +112,7 @@ no universally accepted "habit momentum score" standard.
 
 In one sentence: *Momentum uses a standard statistical technique,
 combined with mainstream behaviour-design principles; its specific
-weights are tuned for Kinetiq and are not a clinical measure of habit
+weights are tuned for Kinetic and are not a clinical measure of habit
 strength.*
 
 ---
@@ -154,14 +154,15 @@ UI (available for a future momentum chart).
 
 ### Delivery pipeline
 
-- `KinetiqViewModel.selectedAnalytics` combines the selected habit, its
-  log records, a records-version stamp, and settings, then computes on
-  `Dispatchers.Default`.
+- `KineticViewModel.selectedAnalytics` combines the selected habit, its
+  log records, and settings, then computes on `Dispatchers.Default`.
 - Results are memoized in `AnalyticsCache` (keyed by habit ID + habit
-  hash + record count + latest `recordedAt` + the two settings above;
+  hash + a hash of the exact records list used + the two settings above;
   max 32 entries), so reopening a detail screen is instant unless the
-  underlying data changed.
-- `KinetiqGauge` renders the percentage as a 270° arc, animating to the
+  underlying data changed. Keying on the records themselves (rather than
+  a separately observed version stamp) guarantees a cached result can
+  never have been computed from a different, stale record list.
+- `KineticGauge` renders the percentage as a 270° arc, animating to the
   value over 900 ms. The trajectory badge is emerald at ≥ 70, gold
   at ≥ 40, and violet below 40.
 
@@ -173,4 +174,6 @@ UI (available for a future momentum chart).
 - A floor sustain scores strictly below a target completion and at or
   above a miss.
 - Rest Shield days preserve the streak/score without inflating them.
-- The analytics cache invalidates when the records version changes.
+- The analytics cache only hits for the exact records list a result was
+  computed from, and a Yes/No day-tap (toggle) counts as a target
+  completion worth 7% Momentum on its first day.

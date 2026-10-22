@@ -60,7 +60,7 @@ import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.parseHabitColor
-import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KineticEmerald
 import com.example.ui.theme.RestShieldBlue
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -149,11 +149,11 @@ fun HabitCard(
                 modifier = Modifier.weight(1f)
             )
 
-            // Kinetiq Momentum badge, left of the overflow menu
+            // Kinetic Momentum badge, left of the overflow menu
             val momentumColor = when {
-                momentumPercent >= 70 -> com.example.ui.theme.KinetiqEmerald
+                momentumPercent >= 70 -> com.example.ui.theme.KineticEmerald
                 momentumPercent >= 40 -> com.example.ui.theme.FloorGold
-                else -> com.example.ui.theme.KinetiqViolet
+                else -> com.example.ui.theme.KineticViolet
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,

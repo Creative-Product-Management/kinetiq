@@ -51,6 +51,7 @@ data class BackupPayload(
 ) { companion object { const val CURRENT_SCHEMA = 1 } }
 
 @JsonClass(generateAdapter = false)
+// Brand rename: the format string is intentionally kept — changing it would reject every previously exported backup.
 data class BackupEnvelope(val format: String = "kinetiq-backup", val version: Int = 1, val salt: String, val iv: String, val data: String)
 
 /** Passphrase-encrypted, portable backup. AES-GCM with PBKDF2-derived key; no plaintext leaves the app. */
@@ -123,7 +124,7 @@ object BackupCrypto {
     fun decrypt(bytes: ByteArray, passphrase: CharArray, envelopeAdapter: com.squareup.moshi.JsonAdapter<BackupEnvelope>): ByteArray {
         val envelope = envelopeAdapter.fromJson(bytes.toString(Charsets.UTF_8))
             ?: throw IllegalArgumentException("Invalid backup file")
-        require(envelope.format == "kinetiq-backup") { "Not a Kinetiq backup" }
+        require(envelope.format == "kinetiq-backup") { "Not a Kinetic Routines backup" }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(
             Cipher.DECRYPT_MODE,

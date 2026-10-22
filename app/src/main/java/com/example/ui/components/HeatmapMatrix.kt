@@ -35,13 +35,13 @@ import com.example.domain.analytics.HeatmapCell
 import com.example.domain.analytics.HeatmapCellState
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KineticEmerald
 import com.example.ui.theme.RestShieldBlue
 
 @Composable
 fun HeatmapMatrix(
     cells: List<HeatmapCell>,
-    habitColor: Color = KinetiqEmerald,
+    habitColor: Color = KineticEmerald,
     modifier: Modifier = Modifier,
     weekStartsOnMonday: Boolean = true
 ) {

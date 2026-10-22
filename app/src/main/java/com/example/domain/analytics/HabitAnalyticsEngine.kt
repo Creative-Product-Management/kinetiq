@@ -3,8 +3,8 @@ package com.example.domain.analytics
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitRecordEntity
 import com.example.domain.time.DateCodec
-import com.example.domain.time.KinetiqClock
-import com.example.domain.time.SystemKinetiqClock
+import com.example.domain.time.KineticClock
+import com.example.domain.time.SystemKineticClock
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -43,7 +43,7 @@ object HabitAnalyticsEngine {
     fun calculateMomentumPercent(
         habit: HabitEntity,
         records: List<HabitRecordEntity>,
-        clock: KinetiqClock = SystemKinetiqClock,
+        clock: KineticClock = SystemKineticClock,
         restShieldEnabled: Boolean = true
     ): Int {
         val today = clock.today()
@@ -71,7 +71,7 @@ object HabitAnalyticsEngine {
     fun calculateAnalytics(
         habit: HabitEntity,
         records: List<HabitRecordEntity>,
-        clock: KinetiqClock = SystemKinetiqClock,
+        clock: KineticClock = SystemKineticClock,
         restShieldEnabled: Boolean = true,
         weekStartsOnMonday: Boolean = true
     ): HabitAnalyticsResult {

@@ -10,16 +10,15 @@ import com.example.data.model.HabitRecordEntity
 import com.example.data.model.RoutineStackEntity
 import com.example.data.repository.HabitRepository
 import com.example.data.repository.HabitSortMode
-import com.example.data.repository.KinetiqSettings
+import com.example.data.repository.KineticSettings
 import com.example.data.repository.LogRepository
-import com.example.data.repository.RecordsVersion
 import com.example.data.repository.SettingsRepository
 import com.example.di.AppContainer
 import com.example.domain.analytics.AnalyticsCache
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.analytics.HabitAnalyticsResult
 import com.example.domain.time.DateCodec
-import com.example.domain.time.SystemKinetiqClock
+import com.example.domain.time.SystemKineticClock
 import com.example.notification.HabitNotificationScheduler
 import com.example.ui.components.DayStripItem
 import com.example.ui.components.InAppNudgeData
@@ -27,7 +26,6 @@ import com.example.ui.components.NudgeType
 import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -61,7 +59,7 @@ fun sortHabitCards(cards: List<HabitCardUi>, mode: HabitSortMode): List<HabitCar
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class KinetiqViewModel(
+class KineticViewModel(
     private val habitRepository: HabitRepository,
     private val logRepository: LogRepository,
     private val settingsRepository: SettingsRepository,
@@ -70,8 +68,8 @@ class KinetiqViewModel(
     private val container: AppContainer
 ) : ViewModel() {
 
-    val settings: StateFlow<KinetiqSettings> = settingsRepository.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KinetiqSettings())
+    val settings: StateFlow<KineticSettings> = settingsRepository.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KineticSettings())
     val themeMode: StateFlow<ThemeMode> = settings.map { it.themeMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.DARK)
     val weekStartsOnMonday: StateFlow<Boolean> = settings.map { it.weekStartsOnMonday }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val defaultFloorPercent: StateFlow<Int> = settings.map { it.defaultFloorPercent }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 25)
@@ -114,16 +112,18 @@ class KinetiqViewModel(
         .flatMapLatest { habit -> if (habit == null) flowOf(emptyList()) else logRepository.recordsForHabitWindow(habit.id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val detailVersion: Flow<RecordsVersion> = _selectedHabitForDetail
-        .flatMapLatest { habit -> if (habit == null) flowOf(RecordsVersion(0, 0)) else logRepository.recordsVersion(habit.id) }
-
+    // The analytics cache is keyed by the records list itself (see
+    // AnalyticsCache), so the cached result always matches the records in
+    // this emission. A separate version flow must not be used here: it can
+    // emit before the records flow and poison the cache with a result
+    // computed from a stale record list.
     val selectedAnalytics: StateFlow<HabitAnalyticsResult?> = combine(
-        _selectedHabitForDetail, detailRecords, detailVersion, settings
-    ) { habit, records, version, s ->
+        _selectedHabitForDetail, detailRecords, settings
+    ) { habit, records, s ->
         if (habit == null) null
-        else analyticsCache.get(habit, version, s.restShieldEnabled, s.weekStartsOnMonday) ?: HabitAnalyticsEngine.calculateAnalytics(
+        else analyticsCache.get(habit, records, s.restShieldEnabled, s.weekStartsOnMonday) ?: HabitAnalyticsEngine.calculateAnalytics(
             habit, records, restShieldEnabled = s.restShieldEnabled, weekStartsOnMonday = s.weekStartsOnMonday
-        ).also { analyticsCache.put(habit, version, s.restShieldEnabled, s.weekStartsOnMonday, it) }
+        ).also { analyticsCache.put(habit, records, s.restShieldEnabled, s.weekStartsOnMonday, it) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Records in the Momentum window (last 91 days), kept separate from the 14-day day-strip window. */
@@ -189,7 +189,7 @@ class KinetiqViewModel(
 
     private fun buildNudges(habits: List<HabitEntity>, records: List<HabitRecordEntity>, stacks: List<RoutineStackEntity>): List<InAppNudgeData> {
         if (habits.isEmpty()) return emptyList()
-        val today = SystemKinetiqClock.today()
+        val today = SystemKineticClock.today()
         val todayStr = DateCodec.format(today)
         val doneToday = records.filter { it.dateString == todayStr && (it.isCompleted || it.isFloorSustained) }.map { it.habitId }.toSet()
         val nudges = mutableListOf<InAppNudgeData>()
@@ -329,14 +329,15 @@ class KinetiqViewModel(
     fun setDailyEveningDigestHour(hour: Int) { viewModelScope.launch { settingsRepository.setDailyEveningDigestHour(hour) } }
 
     fun resetAllRecords() { viewModelScope.launch { logRepository.clearAllRecords(); analyticsCache.clear() } }
-    fun reseedDemoData() { viewModelScope.launch { habitRepository.reseedData(); analyticsCache.clear() } }
+    /** Opt-in sample habit from Settings; no-op if one with the sample title already exists. */
+    fun loadSampleHabit() { viewModelScope.launch { habitRepository.loadSampleHabit() } }
 
     suspend fun exportBackup(passphrase: CharArray): ByteArray = container.backupManager.exportEncrypted(passphrase)
     suspend fun importBackup(bytes: ByteArray, passphrase: CharArray) { container.backupManager.importEncrypted(bytes, passphrase); analyticsCache.clear() }
 
     fun buildRecent7Days(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true): List<DayStripItem> {
         val recordMap = habitRecords.associateBy { it.dateString }
-        val today: LocalDate = SystemKinetiqClock.today()
+        val today: LocalDate = SystemKineticClock.today()
         // Anchor the strip so it ends today; weekday letters come from the actual date.
         return (6 downTo 0).map { offset ->
             val date = today.minusDays(offset.toLong())
@@ -358,8 +359,8 @@ class KinetiqViewModel(
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            require(modelClass.isAssignableFrom(KinetiqViewModel::class.java))
-            return KinetiqViewModel(
+            require(modelClass.isAssignableFrom(KineticViewModel::class.java))
+            return KineticViewModel(
                 container.habitRepository, container.logRepository, container.settingsRepository,
                 container.notificationScheduler, container.analyticsCache, container
             ) as T

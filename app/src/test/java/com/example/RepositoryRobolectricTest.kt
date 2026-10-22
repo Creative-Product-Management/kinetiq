@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.db.KinetiqDatabase
+import com.example.data.db.KineticDatabase
 import com.example.data.db.MIGRATION_2_3
 import com.example.data.model.Category
 import com.example.data.model.Habit
@@ -14,13 +14,15 @@ import com.example.data.model.HabitModality
 import com.example.data.model.LogEntry
 import com.example.data.repository.HabitRepository
 import com.example.data.repository.LogRepository
+import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.time.DateCodec
-import com.example.domain.time.FixedKinetiqClock
+import com.example.domain.time.FixedKineticClock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,19 +30,20 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.time.LocalDate
+import java.time.ZoneId
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RepositoryRobolectricTest {
 
-    private fun newDb(context: Context): KinetiqDatabase =
-        Room.inMemoryDatabaseBuilder(context, KinetiqDatabase::class.java).allowMainThreadQueries().build()
+    private fun newDb(context: Context): KineticDatabase =
+        Room.inMemoryDatabaseBuilder(context, KineticDatabase::class.java).allowMainThreadQueries().build()
 
     @Test fun `tally increments are atomic under concurrency and completion is idempotent`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)
         val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
-        val logRepo = LogRepository(db, db.logEntryDao(), FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
+        val logRepo = LogRepository(db, db.logEntryDao(), FixedKineticClock(LocalDate.of(2026, 10, 21)))
         val today = "2026-10-21"
         val id = habitRepo.saveHabit(Habit(title = "Sprints", modality = HabitModality.TALLY, targetValue = 3.0, floorValue = 1.0, unit = "sprints"))
         val habit = habitRepo.getHabitById(id)!!
@@ -58,6 +61,67 @@ class RepositoryRobolectricTest {
         // FK cascade: deleting habit removes logs
         habitRepo.deleteHabit(habit)
         assertEquals(null, logRepo.getRecord(id, today))
+        db.close()
+    }
+
+    @Test fun `yes-no day tap counts as target completion for momentum`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = newDb(context)
+        val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
+        val today = LocalDate.of(2026, 10, 21)
+        val clock = FixedKineticClock(today)
+        val logRepo = LogRepository(db, db.logEntryDao(), clock)
+        val createdMillis = today.minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val id = habitRepo.saveHabit(Habit(title = "Meditate", modality = HabitModality.YES_NO, targetValue = 1.0, createdAt = createdMillis))
+        val habit = habitRepo.getHabitById(id)!!
+
+        // Tapping today's day circle (the only Yes/No log action) logs target.
+        logRepo.toggleHabitForDate(habit, "2026-10-21")
+        val record = logRepo.getRecord(id, "2026-10-21")
+        assertEquals(true, record?.isCompleted)
+
+        val records = db.logEntryDao().getLogsListForHabit(id)
+        val result = HabitAnalyticsEngine.calculateAnalytics(habit, records, clock = clock)
+        assertEquals(7, result.habitStrengthPercent) // one target day: 0.07 EMA
+        assertEquals(1, result.currentStreak)
+        assertEquals(1, result.totalTargetCompletions)
+
+        // Tapping again toggles off and momentum returns to zero.
+        logRepo.toggleHabitForDate(habit, "2026-10-21")
+        assertEquals(null, logRepo.getRecord(id, "2026-10-21"))
+        val cleared = HabitAnalyticsEngine.calculateAnalytics(habit, db.logEntryDao().getLogsListForHabit(id), clock = clock)
+        assertEquals(0, cleared.habitStrengthPercent)
+        db.close()
+    }
+
+    @Test fun `sample habit loads once only and deleting all habits stays empty`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = newDb(context)
+        val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
+
+        // Fresh database starts empty: nothing is auto-seeded.
+        assertTrue(habitRepo.snapshotHabits().isEmpty())
+
+        assertTrue(habitRepo.loadSampleHabit())
+        val habits = habitRepo.snapshotHabits()
+        assertEquals(1, habits.size)
+        assertEquals(HabitRepository.SAMPLE_HABIT_TITLE, habits.first().title)
+        assertEquals(HabitModality.TIMER, habits.first().modality)
+        assertEquals(null, habits.first().reminderHour)
+        assertTrue(habitRepo.snapshotLogs().isEmpty())
+        assertTrue(habitRepo.snapshotStacks().isEmpty())
+        assertTrue(habitRepo.snapshotCategories().isEmpty())
+
+        // Loading again does not duplicate the sample habit.
+        assertFalse(habitRepo.loadSampleHabit())
+        assertEquals(1, habitRepo.snapshotHabits().size)
+
+        // Deleting it sticks (no resurrection), but Load can opt back in.
+        habitRepo.deleteHabit(habits.first())
+        assertTrue(habitRepo.snapshotHabits().isEmpty())
+        assertTrue(habitRepo.loadSampleHabit())
+        habitRepo.deleteHabit(habitRepo.snapshotHabits().first())
+        assertTrue(habitRepo.snapshotHabits().isEmpty())
         db.close()
     }
 
@@ -81,7 +145,7 @@ class RepositoryRobolectricTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)
         val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
-        val logRepo = LogRepository(db, db.logEntryDao(), FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
+        val logRepo = LogRepository(db, db.logEntryDao(), FixedKineticClock(LocalDate.of(2026, 10, 21)))
         val id = habitRepo.saveHabit(Habit(title = "Water", modality = HabitModality.NUMERIC, targetValue = 2500.0, unit = "ml"))
         db.logEntryDao().insertOrUpdate(LogEntry(habitId = id, dateString = "2026-09-01", isCompleted = true, numericValue = 2500.0))
         db.logEntryDao().insertOrUpdate(LogEntry(habitId = id, dateString = "2026-10-21", isCompleted = true, numericValue = 2500.0))
@@ -134,7 +198,7 @@ class RepositoryRobolectricTest {
         val writable = helper.writableDatabase
         writable.close(); helper.close()
 
-        val db = Room.databaseBuilder(context, KinetiqDatabase::class.java, name)
+        val db = Room.databaseBuilder(context, KineticDatabase::class.java, name)
             .addMigrations(MIGRATION_2_3).allowMainThreadQueries().build()
         runBlocking {
             val habit = db.habitDao().getHabitById(7)

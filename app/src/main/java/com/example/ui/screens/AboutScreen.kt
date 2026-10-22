@@ -63,20 +63,21 @@ fun AboutScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
                     painter = painterResource(R.drawable.ic_orbit_foreground_1792527364716),
-                    contentDescription = "Kinetiq",
+                    contentDescription = "Kinetic Routines",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))
                 )
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text("Kinetiq", fontFamily = Fraunces, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Kinetic Routines", fontFamily = Fraunces, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Momentum-based Habit Builder", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     Text("Version ${BuildConfig.VERSION_NAME}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Spacer(Modifier.height(20.dp))
             Text(
-                "Kinetiq is a calm, offline habit tracker. Build habits with a target for your best days and a floor for your hard days, protect them with scheduled rest days, and watch your Momentum grow.",
+                "Kinetic Routines is a calm, offline habit tracker. Build habits with a target for your best days and a floor for your hard days, protect them with scheduled rest days, and watch your Momentum grow.",
                 fontSize = 14.sp, lineHeight = 21.sp, color = MaterialTheme.colorScheme.onSurface
             )
 
@@ -107,7 +108,7 @@ fun AboutScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             Spacer(Modifier.height(24.dp))
             Column(modifier = Modifier.padding(start = 14.dp)) {
                 Text(
-                    "Kinetiq ${BuildConfig.VERSION_NAME}",
+                    "Kinetic Routines ${BuildConfig.VERSION_NAME}",
                     fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("about_version_text")
                 )

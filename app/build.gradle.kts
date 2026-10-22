@@ -13,6 +13,7 @@ android {
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
+    // Brand rename: intentionally kept — this is the Play Store identity; changing it would publish a different app.
     applicationId = "com.kinetiq.app"
     minSdk = 24
     targetSdk = 36

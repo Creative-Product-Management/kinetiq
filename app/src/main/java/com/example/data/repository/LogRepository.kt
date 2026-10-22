@@ -1,23 +1,20 @@
 package com.example.data.repository
 
 import androidx.room.withTransaction
-import com.example.data.db.KinetiqDatabase
+import com.example.data.db.KineticDatabase
 import com.example.data.db.LogEntryDao
 import com.example.data.model.Habit
 import com.example.data.model.HabitModality
 import com.example.data.model.LogEntry
 import com.example.domain.time.DateCodec
-import com.example.domain.time.KinetiqClock
-import com.example.domain.time.SystemKinetiqClock
+import com.example.domain.time.KineticClock
+import com.example.domain.time.SystemKineticClock
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-
-data class RecordsVersion(val count: Int, val latestRecordedAt: Long)
 
 class LogRepository(
-    private val database: KinetiqDatabase,
+    private val database: KineticDatabase,
     private val logEntryDao: LogEntryDao,
-    private val clock: KinetiqClock = SystemKinetiqClock
+    private val clock: KineticClock = SystemKineticClock
 ) {
     /** Windowed dashboard cache: only the last [DASHBOARD_WINDOW_DAYS] days are ever loaded for the list. */
     fun dashboardRecords(): Flow<List<LogEntry>> {
@@ -38,9 +35,6 @@ class LogRepository(
 
     fun recordsForHabitWindow(habitId: Long, days: Int = DETAIL_WINDOW_DAYS): Flow<List<LogEntry>> =
         logEntryDao.getLogsForHabitSince(habitId, DateCodec.format(clock.today().minusDays(days.toLong())))
-
-    fun recordsVersion(habitId: Long): Flow<RecordsVersion> =
-        combine(logEntryDao.getLogCountForHabit(habitId), logEntryDao.getLatestRecordedAtForHabit(habitId)) { c, m -> RecordsVersion(c, m) }
 
     suspend fun getRecord(habitId: Long, dateString: String): LogEntry? = logEntryDao.getLog(habitId, dateString)
 

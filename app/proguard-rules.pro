@@ -1,4 +1,4 @@
-# Kinetiq release rules (R8). The app is offline-only; no network serializers beyond Moshi backup.
+# Kinetic Routines release rules (R8). The app is offline-only; no network serializers beyond Moshi backup.
 
 # Room entities and database
 -keep class com.example.data.model.** { *; }

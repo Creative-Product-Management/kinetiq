@@ -26,14 +26,14 @@ import com.example.ui.screens.FaqScreen
 import com.example.ui.screens.HabitDetailAnalyticsScreen
 import com.example.ui.screens.HabitEditorSheet
 import com.example.ui.screens.HabitSortScreen
-import com.example.ui.screens.KinetiqDashboardScreen
+import com.example.ui.screens.KineticDashboardScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.theme.KinetiqHabitTheme
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.theme.KineticRoutinesTheme
+import com.example.ui.viewmodel.KineticViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private var viewModelRef: KinetiqViewModel? = null
+    private var viewModelRef: KineticViewModel? = null
     private var pendingDeepLinkId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,15 +42,15 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
 
         setContent {
-            val app = application as KinetiqHabitApplication
-            val viewModel: KinetiqViewModel = viewModel(factory = KinetiqViewModel.Factory(app.container))
+            val app = application as KineticRoutinesApplication
+            val viewModel: KineticViewModel = viewModel(factory = KineticViewModel.Factory(app.container))
             viewModelRef = viewModel
             LaunchedEffect(viewModel) {
                 if (pendingDeepLinkId > 0) { viewModel.onNotificationDeepLink(pendingDeepLinkId); pendingDeepLinkId = -1L }
             }
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
-            KinetiqHabitTheme(themeMode = themeMode) {
+            KineticRoutinesTheme(themeMode = themeMode) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     val pendingDetail by viewModel.selectedHabitForDetail.collectAsStateWithLifecycle()
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "dashboard") {
                         composable("dashboard") {
-                            KinetiqDashboardScreen(
+                            KineticDashboardScreen(
                                 viewModel = viewModel,
                                 onOpenHabitDetail = { id -> navController.navigate("detail/$id") },
                                 onOpenEditor = { id -> navController.navigate(if (id == null) "editor" else "editor?habitId=$id") },

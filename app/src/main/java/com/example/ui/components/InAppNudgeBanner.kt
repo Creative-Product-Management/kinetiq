@@ -50,8 +50,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.KinetiqEmerald
-import com.example.ui.theme.KinetiqViolet
+import com.example.ui.theme.KineticEmerald
+import com.example.ui.theme.KineticViolet
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -188,7 +188,7 @@ fun InAppNudgeBanner(
             NudgeType.STACK_PRIMED -> Triple(
                 Icons.Default.ElectricBolt,
                 Brush.horizontalGradient(listOf(Color(0xFF4C2A78), Color(0xFF2A1848))),
-                KinetiqViolet
+                KineticViolet
             )
             NudgeType.REST_SHIELD -> Triple(
                 Icons.Default.Shield,
@@ -198,7 +198,7 @@ fun InAppNudgeBanner(
             NudgeType.MOMENTUM_BOOST -> Triple(
                 Icons.Default.ElectricBolt,
                 Brush.horizontalGradient(listOf(Color(0xFF146348), Color(0xFF0E3328))),
-                KinetiqEmerald
+                KineticEmerald
             )
             NudgeType.INSIGHT -> Triple(
                 Icons.Default.TipsAndUpdates,

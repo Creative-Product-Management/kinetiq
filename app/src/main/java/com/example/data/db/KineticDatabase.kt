@@ -123,7 +123,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     exportSchema = true
 )
 @TypeConverters(Converters::class)
-abstract class KinetiqDatabase : RoomDatabase() {
+abstract class KineticDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun logEntryDao(): LogEntryDao
     abstract fun categoryDao(): CategoryDao

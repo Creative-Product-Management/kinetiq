@@ -1,10 +1,12 @@
-# Kinetiq
+# Kinetic Routines
+
+*Momentum-based Habit Builder* (shown in-app as **Routines**)
 
 Offline-first Android habit tracker built around elastic goals: every habit has a
 target and a minimum "floor", scheduled rest days that shield your momentum, routine
 stacks, and analytics that show strength, streaks, and friction patterns.
 
-**Privacy model:** Kinetiq is strictly front-end only. There is no account, server,
+**Privacy model:** Kinetic Routines is strictly front-end only. There is no account, server,
 sync, or tracking. Habits and logs live in an on-device Room database and never leave
 the phone unless you export a passphrase-encrypted backup file yourself.
 
@@ -25,8 +27,8 @@ the phone unless you export a passphrase-encrypted backup file yourself.
 - `data/db` — Room DAOs (habits/stacks, log entries, categories), schema v3 with explicit migrations (`app/schemas`)
 - `data/repository` — `HabitRepository`, `LogRepository` (windowed queries, atomic/idempotent writes), `SettingsRepository` (DataStore)
 - `data/backup` — passphrase-encrypted (AES-GCM + PBKDF2) export/import via the system file picker
-- `domain/analytics` — deterministic, clock-injected habit analytics with an in-memory memo cache
-- `domain/time` — `KinetiqClock` / `DateCodec` (`yyyy-MM-dd`, locale-independent)
+- `domain/analytics` — deterministic, clock-injected habit analytics with an in-memory memo cache (see [Kinetic Momentum](docs/KINETIC_MOMENTUM.md))
+- `domain/time` — `KineticClock` / `DateCodec` (`yyyy-MM-dd`, locale-independent)
 - `notification` — repeating reminders honoring reminder/rest days, boot re-arming, Play-compliant exact-alarm fallback
 - `ui` — Jetpack Compose + Navigation Compose, Material 3 theming (light/dark/system)
 

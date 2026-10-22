@@ -52,7 +52,7 @@ import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KineticEmerald
 
 @Composable
 fun QuickLogDialog(

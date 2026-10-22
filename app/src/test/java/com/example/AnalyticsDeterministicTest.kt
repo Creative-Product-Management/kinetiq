@@ -5,8 +5,7 @@ import com.example.data.model.HabitModality
 import com.example.data.model.LogEntry
 import com.example.domain.analytics.AnalyticsCache
 import com.example.domain.analytics.HabitAnalyticsEngine
-import com.example.domain.time.FixedKinetiqClock
-import com.example.data.repository.RecordsVersion
+import com.example.domain.time.FixedKineticClock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,7 +26,7 @@ class AnalyticsDeterministicTest {
         val h = habit(today)
         val result = HabitAnalyticsEngine.calculateAnalytics(
             h, listOf(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true)),
-            clock = FixedKinetiqClock(today)
+            clock = FixedKineticClock(today)
         )
         assertTrue(result.habitStrengthPercent > 0)
         assertEquals(1, result.currentStreak)
@@ -43,13 +42,13 @@ class AnalyticsDeterministicTest {
             LogEntry(habitId = 1, dateString = "2026-10-19", isCompleted = true)
             // 2026-10-20 Tue: rest, no record. 2026-10-21: not yet logged.
         )
-        val result = HabitAnalyticsEngine.calculateAnalytics(h, records, clock = FixedKinetiqClock(today))
+        val result = HabitAnalyticsEngine.calculateAnalytics(h, records, clock = FixedKineticClock(today))
         assertEquals(2, result.currentStreak)
     }
 
     @Test fun `heatmap is aligned to Monday and has 140 cells`() {
         val today = LocalDate.of(2026, 10, 21)
-        val result = HabitAnalyticsEngine.calculateAnalytics(habit(today.minusDays(200)), emptyList(), clock = FixedKinetiqClock(today))
+        val result = HabitAnalyticsEngine.calculateAnalytics(habit(today.minusDays(200)), emptyList(), clock = FixedKineticClock(today))
         assertEquals(140, result.heatmapCells.size)
         assertEquals(1, result.heatmapCells.first().dayOfWeek) // Monday
         assertEquals(7, result.heatmapCells[6].dayOfWeek) // Sunday ends first week
@@ -61,7 +60,7 @@ class AnalyticsDeterministicTest {
         val records = listOf("2026-12-30", "2026-12-31", "2027-01-01").map {
             LogEntry(habitId = 1, dateString = it, isCompleted = true)
         }
-        val result = HabitAnalyticsEngine.calculateAnalytics(habit(created), records, clock = FixedKinetiqClock(today))
+        val result = HabitAnalyticsEngine.calculateAnalytics(habit(created), records, clock = FixedKineticClock(today))
         assertEquals(3, result.currentStreak)
         assertTrue(result.bestStreak >= 3)
     }
@@ -70,7 +69,7 @@ class AnalyticsDeterministicTest {
         val today = LocalDate.of(2026, 10, 21)
         val created = today.minusDays(9)
         fun strengthFor(record: LogEntry?) = HabitAnalyticsEngine.calculateAnalytics(
-            habit(created), listOfNotNull(record), clock = FixedKinetiqClock(today)
+            habit(created), listOfNotNull(record), clock = FixedKineticClock(today)
         ).habitStrengthPercent
         val target = strengthFor(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true))
         val floor = strengthFor(LogEntry(habitId = 1, dateString = "2026-10-21", isFloorSustained = true))
@@ -79,14 +78,24 @@ class AnalyticsDeterministicTest {
         assertTrue(floor >= miss)
     }
 
-    @Test fun `analytics cache invalidates on version change`() {
+    @Test fun `analytics cache is keyed by the records it was computed from`() {
         val cache = AnalyticsCache()
         val h = habit(LocalDate.of(2026, 10, 1))
-        val result = HabitAnalyticsEngine.calculateAnalytics(h, emptyList(), clock = FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
-        cache.put(h, RecordsVersion(0, 0), true, true, result)
-        assertTrue(cache.get(h, RecordsVersion(0, 0), true, true) != null)
-        assertTrue(cache.get(h, RecordsVersion(1, 99), true, true) == null)
+        val clock = FixedKineticClock(LocalDate.of(2026, 10, 21))
+        val emptyResult = HabitAnalyticsEngine.calculateAnalytics(h, emptyList(), clock = clock)
+        cache.put(h, emptyList(), true, true, emptyResult)
+        assertTrue(cache.get(h, emptyList(), true, true) != null)
+        // A different records list must miss, even if it would share the same
+        // count/latest stamp timing as a stale emission (the old cache race).
+        val oneRecord = listOf(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true))
+        assertTrue(cache.get(h, oneRecord, true, true) == null)
+        // Recomputing from the new records and caching must then hit and
+        // return the new (non-zero) result, not the poisoned empty one.
+        val freshResult = HabitAnalyticsEngine.calculateAnalytics(h, oneRecord, clock = clock)
+        assertTrue(freshResult.habitStrengthPercent > 0)
+        cache.put(h, oneRecord, true, true, freshResult)
+        assertEquals(freshResult, cache.get(h, oneRecord, true, true))
         cache.invalidate(1)
-        assertTrue(cache.get(h, RecordsVersion(0, 0), true, true) == null)
+        assertTrue(cache.get(h, oneRecord, true, true) == null)
     }
 }

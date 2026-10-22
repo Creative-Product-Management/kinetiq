@@ -77,8 +77,8 @@ import com.example.data.model.HabitModality
 import com.example.data.model.RoutineStackEntity
 import com.example.domain.validation.HabitValidator
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.KinetiqEmerald
-import com.example.ui.theme.KinetiqViolet
+import com.example.ui.theme.KineticEmerald
+import com.example.ui.theme.KineticViolet
 import com.example.ui.theme.MissedRed
 import com.example.ui.theme.parseHabitColor
 
@@ -101,9 +101,11 @@ fun HabitEditorSheet(
     var description by rememberSaveable(habit?.id) { mutableStateOf(habit?.description ?: "") }
     var cueTrigger by rememberSaveable(habit?.id) { mutableStateOf(habit?.cueTrigger ?: "") }
     var modality by rememberSaveable(habit?.id) { mutableStateOf(habit?.modality ?: HabitModality.YES_NO) }
-    var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "1") }
+    // New habits start blank: target/unit are hinted via placeholders (which
+    // vanish on the first keystroke) instead of pre-filled saved values.
+    var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "") }
     var floorValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.floorValue?.let { formatDecimal(it) } ?: "") }
-    var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: (habit?.modality ?: HabitModality.YES_NO).defaultUnit) }
+    var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: "") }
     var categoryId by rememberSaveable(habit?.id) { mutableStateOf(habit?.categoryId) }
     var routineStackId by rememberSaveable(habit?.id) { mutableStateOf(habit?.routineStackId) }
     var colorHex by rememberSaveable(habit?.id) { mutableStateOf(habit?.colorHex ?: "#10B981") }
@@ -140,15 +142,17 @@ fun HabitEditorSheet(
 
     fun save() {
         val targetNum = targetValue.toDoubleOrNull()
+        // Yes/No habits have no target field; their target is always 1.
+        val effectiveTargetNum = if (modality == HabitModality.YES_NO) targetNum ?: 1.0 else targetNum
         val floorNum = if (floorValue.isBlank()) null else floorValue.toDoubleOrNull()
-        validation = HabitValidator.validate(title, targetNum, floorNum)
+        validation = HabitValidator.validate(title, effectiveTargetNum, floorNum)
         if (modality != HabitModality.YES_NO && floorValue.isNotBlank() && floorNum == null) {
             validation = validation.copy(floorError = "Enter a valid number")
         }
         if (validation.isValid) {
             val newHabit = (habit ?: HabitEntity(title = title)).copy(
                 title = title.trim(), description = description, cueTrigger = cueTrigger,
-                modality = modality, targetValue = targetNum ?: 1.0, floorValue = floorNum,
+                modality = modality, targetValue = effectiveTargetNum ?: 1.0, floorValue = floorNum,
                 unit = unit.ifBlank { modality.defaultUnit },
                 categoryId = categoryId, routineStackId = routineStackId,
                 colorHex = colorHex, iconName = iconName,
@@ -186,15 +190,15 @@ fun HabitEditorSheet(
         cursorColor = FloorGold
     )
     val cueFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = KinetiqViolet,
+        focusedBorderColor = KineticViolet,
         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedTextColor = MaterialTheme.colorScheme.onSurface,
         unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-        focusedLabelColor = KinetiqViolet,
+        focusedLabelColor = KineticViolet,
         unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedContainerColor = MaterialTheme.colorScheme.surface,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        cursorColor = KinetiqViolet
+        cursorColor = KineticViolet
     )
 
     val selectedCategoryName = categories.firstOrNull { it.id == categoryId }?.name ?: "General"
@@ -262,13 +266,7 @@ fun HabitEditorSheet(
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
                             .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
                             .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                            .clickable {
-                                val previous = modality; modality = mod
-                                if (unit.isBlank() || unit == previous.defaultUnit) unit = mod.defaultUnit
-                                if (mod != HabitModality.YES_NO && floorValue.isBlank()) {
-                                    (targetValue.toDoubleOrNull()?.let { it * defaultFloorPercent / 100.0 })?.let { floorValue = formatDecimal(it) }
-                                }
-                            }
+                            .clickable { modality = mod }
                             .padding(vertical = 10.dp, horizontal = 4.dp).testTag("modality_tab_${mod.name}"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -288,11 +286,29 @@ fun HabitEditorSheet(
             )
 
             if (modality != HabitModality.YES_NO) {
+                // Placeholders are hints only: shown while a field is empty and
+                // replaced by the user's first keystroke; never saved.
+                val placeholderStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                val targetPlaceholder = when (modality) {
+                    HabitModality.NUMERIC -> "e.g., 2500"
+                    HabitModality.TIMER -> "e.g., 20"
+                    HabitModality.TALLY -> "e.g., 3"
+                    HabitModality.YES_NO -> "e.g., 1"
+                }
+                val suggestedFloor = targetValue.toDoubleOrNull()?.let { it * defaultFloorPercent / 100.0 }
+                val floorPlaceholder = suggestedFloor?.let { "e.g., ${formatDecimal(it)}" } ?: "e.g., 0.5"
+                val unitPlaceholder = when (modality) {
+                    HabitModality.NUMERIC -> "e.g., ml"
+                    HabitModality.TIMER -> "e.g., mins"
+                    HabitModality.TALLY -> "e.g., times"
+                    HabitModality.YES_NO -> ""
+                }
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = targetValue, onValueChange = { targetValue = it },
                         label = { Text("Target") },
+                        placeholder = { Text(targetPlaceholder, style = placeholderStyle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, isError = validation.targetError != null,
                         supportingText = validation.targetError?.let { { Text(it, color = MissedRed) } },
@@ -303,7 +319,7 @@ fun HabitEditorSheet(
                     OutlinedTextField(
                         value = floorValue, onValueChange = { floorValue = it },
                         label = { Text("Floor", color = FloorGold) },
-                        placeholder = { Text("e.g., 0.5", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+                        placeholder = { Text(floorPlaceholder, style = placeholderStyle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, isError = validation.floorError != null,
                         supportingText = validation.floorError?.let { { Text(it, color = MissedRed) } },
@@ -314,7 +330,7 @@ fun HabitEditorSheet(
                     OutlinedTextField(
                         value = unit, onValueChange = { unit = it },
                         label = { Text("Unit") },
-                        placeholder = { Text("mins, ml", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+                        placeholder = { Text(unitPlaceholder, style = placeholderStyle) },
                         singleLine = true,
                         textStyle = inputTextStyle,
                         colors = fieldColors,
@@ -335,7 +351,7 @@ fun HabitEditorSheet(
             ) {
                 OutlinedTextField(
                     value = cueTrigger, onValueChange = { cueTrigger = it },
-                    label = { Text("Cue (optional)", color = KinetiqViolet) },
+                    label = { Text("Cue (optional)", color = KineticViolet) },
                     placeholder = { Text("e.g., After I pour my morning coffee...", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
                     supportingText = { Text("After I [cue], I will do this habit.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
@@ -441,9 +457,9 @@ fun HabitEditorSheet(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Reminder", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        Text(text = if (hasReminder) String.format("%02d:%02d on selected days", reminderHour, reminderMinute) else "Off", fontSize = 11.sp, color = if (hasReminder) KinetiqEmerald else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = if (hasReminder) String.format("%02d:%02d on selected days", reminderHour, reminderMinute) else "Off", fontSize = 11.sp, color = if (hasReminder) KineticEmerald else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = hasReminder, onCheckedChange = { hasReminder = it }, colors = SwitchDefaults.colors(checkedThumbColor = KinetiqEmerald, checkedTrackColor = Color(0xFF0F3A2A)))
+                    Switch(checked = hasReminder, onCheckedChange = { hasReminder = it }, colors = SwitchDefaults.colors(checkedThumbColor = KineticEmerald, checkedTrackColor = Color(0xFF0F3A2A)))
                 }
                 if (hasReminder) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -453,7 +469,7 @@ fun HabitEditorSheet(
                     Spacer(modifier = Modifier.height(10.dp))
                     Text("Reminder days", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
-                    DayMaskRow(mask = reminderDaysMask, daysOfWeek = daysOfWeek, selectedColor = KinetiqEmerald, borderColor = KinetiqEmerald) { reminderDaysMask = it }
+                    DayMaskRow(mask = reminderDaysMask, daysOfWeek = daysOfWeek, selectedColor = KineticEmerald, borderColor = KineticEmerald) { reminderDaysMask = it }
                 }
             }
 

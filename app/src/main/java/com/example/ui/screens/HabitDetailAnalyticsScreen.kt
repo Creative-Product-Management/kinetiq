@@ -54,11 +54,11 @@ import com.example.data.model.HabitRecordEntity
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.analytics.HabitAnalyticsResult
 import com.example.ui.components.HeatmapMatrix
-import com.example.ui.components.KinetiqGauge
+import com.example.ui.components.KineticGauge
 import com.example.ui.components.WeeklyBarChart
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
-import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KineticEmerald
 import com.example.ui.theme.RestShieldBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -136,7 +136,7 @@ fun HabitDetailAnalyticsScreen(
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                // Circular Kinetiq Momentum Gauge Card
+                // Circular Kinetic Momentum Gauge Card
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -146,7 +146,7 @@ fun HabitDetailAnalyticsScreen(
                         .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    KinetiqGauge(
+                    KineticGauge(
                         strengthPercent = analytics.habitStrengthPercent,
                         trajectory = analytics.trajectory,
                         habitColor = habitColor
@@ -171,7 +171,7 @@ fun HabitDetailAnalyticsScreen(
                         title = "BEST STREAK",
                         value = "${analytics.bestStreak}",
                         unit = "days record",
-                        color = KinetiqEmerald,
+                        color = KineticEmerald,
                         modifier = Modifier.weight(1f)
                     )
                 }

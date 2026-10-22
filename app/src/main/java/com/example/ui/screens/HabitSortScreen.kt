@@ -52,13 +52,13 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.HabitEntity
 import com.example.data.repository.HabitSortMode
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.KineticViewModel
 import com.example.ui.viewmodel.sortHabitCards
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HabitSortScreen(
-    viewModel: KinetiqViewModel,
+    viewModel: KineticViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {

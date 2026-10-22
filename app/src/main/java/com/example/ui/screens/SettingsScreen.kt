@@ -72,13 +72,13 @@ import com.example.ui.components.openAppNotificationSettings
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
 import com.example.ui.theme.ThemeMode
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.KineticViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: KinetiqViewModel,
+    viewModel: KineticViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -257,7 +257,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = { exportLauncher.launch("kinetiq-backup.kqbak") },
+                        onClick = { exportLauncher.launch("kinetic-routines-backup.kqbak") },
                         enabled = backupPassphrase.length >= 8,
                         modifier = Modifier.weight(1f).testTag("export_data_btn")
                     ) { Text("Export", fontSize = 12.sp) }
@@ -274,11 +274,11 @@ fun SettingsScreen(
                 }
                 SettingsDivider()
                 SettingsActionRow(
-                    title = "Demo Habits",
-                    actionLabel = "Reload",
+                    title = "Sample Habit",
+                    actionLabel = "Load",
                     onClick = {
-                        viewModel.reseedDemoData()
-                        Toast.makeText(context, "Demo reloaded.", Toast.LENGTH_SHORT).show()
+                        viewModel.loadSampleHabit()
+                        Toast.makeText(context, "Sample habit loaded.", Toast.LENGTH_SHORT).show()
                     },
                     testTag = "reseed_data_btn"
                 )
@@ -306,7 +306,7 @@ fun SettingsScreen(
             }
 
             Text(
-                "Kinetiq ${BuildConfig.VERSION_NAME}",
+                "Kinetic Routines ${BuildConfig.VERSION_NAME}",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp, bottom = 24.dp)
