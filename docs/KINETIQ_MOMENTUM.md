@@ -155,12 +155,13 @@ UI (available for a future momentum chart).
 ### Delivery pipeline
 
 - `KinetiqViewModel.selectedAnalytics` combines the selected habit, its
-  log records, a records-version stamp, and settings, then computes on
-  `Dispatchers.Default`.
+  log records, and settings, then computes on `Dispatchers.Default`.
 - Results are memoized in `AnalyticsCache` (keyed by habit ID + habit
-  hash + record count + latest `recordedAt` + the two settings above;
+  hash + a hash of the exact records list used + the two settings above;
   max 32 entries), so reopening a detail screen is instant unless the
-  underlying data changed.
+  underlying data changed. Keying on the records themselves (rather than
+  a separately observed version stamp) guarantees a cached result can
+  never have been computed from a different, stale record list.
 - `KinetiqGauge` renders the percentage as a 270° arc, animating to the
   value over 900 ms. The trajectory badge is emerald at ≥ 70, gold
   at ≥ 40, and violet below 40.
@@ -173,4 +174,6 @@ UI (available for a future momentum chart).
 - A floor sustain scores strictly below a target completion and at or
   above a miss.
 - Rest Shield days preserve the streak/score without inflating them.
-- The analytics cache invalidates when the records version changes.
+- The analytics cache only hits for the exact records list a result was
+  computed from, and a Yes/No day-tap (toggle) counts as a target
+  completion worth 7% Momentum on its first day.

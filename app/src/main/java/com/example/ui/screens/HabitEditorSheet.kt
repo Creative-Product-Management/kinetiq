@@ -101,9 +101,11 @@ fun HabitEditorSheet(
     var description by rememberSaveable(habit?.id) { mutableStateOf(habit?.description ?: "") }
     var cueTrigger by rememberSaveable(habit?.id) { mutableStateOf(habit?.cueTrigger ?: "") }
     var modality by rememberSaveable(habit?.id) { mutableStateOf(habit?.modality ?: HabitModality.YES_NO) }
-    var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "1") }
+    // New habits start blank: target/unit are hinted via placeholders (which
+    // vanish on the first keystroke) instead of pre-filled saved values.
+    var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "") }
     var floorValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.floorValue?.let { formatDecimal(it) } ?: "") }
-    var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: (habit?.modality ?: HabitModality.YES_NO).defaultUnit) }
+    var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: "") }
     var categoryId by rememberSaveable(habit?.id) { mutableStateOf(habit?.categoryId) }
     var routineStackId by rememberSaveable(habit?.id) { mutableStateOf(habit?.routineStackId) }
     var colorHex by rememberSaveable(habit?.id) { mutableStateOf(habit?.colorHex ?: "#10B981") }
@@ -140,15 +142,17 @@ fun HabitEditorSheet(
 
     fun save() {
         val targetNum = targetValue.toDoubleOrNull()
+        // Yes/No habits have no target field; their target is always 1.
+        val effectiveTargetNum = if (modality == HabitModality.YES_NO) targetNum ?: 1.0 else targetNum
         val floorNum = if (floorValue.isBlank()) null else floorValue.toDoubleOrNull()
-        validation = HabitValidator.validate(title, targetNum, floorNum)
+        validation = HabitValidator.validate(title, effectiveTargetNum, floorNum)
         if (modality != HabitModality.YES_NO && floorValue.isNotBlank() && floorNum == null) {
             validation = validation.copy(floorError = "Enter a valid number")
         }
         if (validation.isValid) {
             val newHabit = (habit ?: HabitEntity(title = title)).copy(
                 title = title.trim(), description = description, cueTrigger = cueTrigger,
-                modality = modality, targetValue = targetNum ?: 1.0, floorValue = floorNum,
+                modality = modality, targetValue = effectiveTargetNum ?: 1.0, floorValue = floorNum,
                 unit = unit.ifBlank { modality.defaultUnit },
                 categoryId = categoryId, routineStackId = routineStackId,
                 colorHex = colorHex, iconName = iconName,
@@ -262,13 +266,7 @@ fun HabitEditorSheet(
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
                             .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
                             .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                            .clickable {
-                                val previous = modality; modality = mod
-                                if (unit.isBlank() || unit == previous.defaultUnit) unit = mod.defaultUnit
-                                if (mod != HabitModality.YES_NO && floorValue.isBlank()) {
-                                    (targetValue.toDoubleOrNull()?.let { it * defaultFloorPercent / 100.0 })?.let { floorValue = formatDecimal(it) }
-                                }
-                            }
+                            .clickable { modality = mod }
                             .padding(vertical = 10.dp, horizontal = 4.dp).testTag("modality_tab_${mod.name}"),
                         contentAlignment = Alignment.Center
                     ) {
@@ -288,11 +286,29 @@ fun HabitEditorSheet(
             )
 
             if (modality != HabitModality.YES_NO) {
+                // Placeholders are hints only: shown while a field is empty and
+                // replaced by the user's first keystroke; never saved.
+                val placeholderStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                val targetPlaceholder = when (modality) {
+                    HabitModality.NUMERIC -> "e.g., 2500"
+                    HabitModality.TIMER -> "e.g., 20"
+                    HabitModality.TALLY -> "e.g., 3"
+                    HabitModality.YES_NO -> "e.g., 1"
+                }
+                val suggestedFloor = targetValue.toDoubleOrNull()?.let { it * defaultFloorPercent / 100.0 }
+                val floorPlaceholder = suggestedFloor?.let { "e.g., ${formatDecimal(it)}" } ?: "e.g., 0.5"
+                val unitPlaceholder = when (modality) {
+                    HabitModality.NUMERIC -> "e.g., ml"
+                    HabitModality.TIMER -> "e.g., mins"
+                    HabitModality.TALLY -> "e.g., times"
+                    HabitModality.YES_NO -> ""
+                }
                 Spacer(modifier = Modifier.height(14.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = targetValue, onValueChange = { targetValue = it },
                         label = { Text("Target") },
+                        placeholder = { Text(targetPlaceholder, style = placeholderStyle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, isError = validation.targetError != null,
                         supportingText = validation.targetError?.let { { Text(it, color = MissedRed) } },
@@ -303,7 +319,7 @@ fun HabitEditorSheet(
                     OutlinedTextField(
                         value = floorValue, onValueChange = { floorValue = it },
                         label = { Text("Floor", color = FloorGold) },
-                        placeholder = { Text("e.g., 0.5", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+                        placeholder = { Text(floorPlaceholder, style = placeholderStyle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true, isError = validation.floorError != null,
                         supportingText = validation.floorError?.let { { Text(it, color = MissedRed) } },
@@ -314,7 +330,7 @@ fun HabitEditorSheet(
                     OutlinedTextField(
                         value = unit, onValueChange = { unit = it },
                         label = { Text("Unit") },
-                        placeholder = { Text("mins, ml", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+                        placeholder = { Text(unitPlaceholder, style = placeholderStyle) },
                         singleLine = true,
                         textStyle = inputTextStyle,
                         colors = fieldColors,

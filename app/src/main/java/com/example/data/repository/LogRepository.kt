@@ -10,9 +10,6 @@ import com.example.domain.time.DateCodec
 import com.example.domain.time.KinetiqClock
 import com.example.domain.time.SystemKinetiqClock
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-
-data class RecordsVersion(val count: Int, val latestRecordedAt: Long)
 
 class LogRepository(
     private val database: KinetiqDatabase,
@@ -38,9 +35,6 @@ class LogRepository(
 
     fun recordsForHabitWindow(habitId: Long, days: Int = DETAIL_WINDOW_DAYS): Flow<List<LogEntry>> =
         logEntryDao.getLogsForHabitSince(habitId, DateCodec.format(clock.today().minusDays(days.toLong())))
-
-    fun recordsVersion(habitId: Long): Flow<RecordsVersion> =
-        combine(logEntryDao.getLogCountForHabit(habitId), logEntryDao.getLatestRecordedAtForHabit(habitId)) { c, m -> RecordsVersion(c, m) }
 
     suspend fun getRecord(habitId: Long, dateString: String): LogEntry? = logEntryDao.getLog(habitId, dateString)
 

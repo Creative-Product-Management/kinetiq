@@ -6,7 +6,6 @@ import com.example.data.model.LogEntry
 import com.example.domain.analytics.AnalyticsCache
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.time.FixedKinetiqClock
-import com.example.data.repository.RecordsVersion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -79,14 +78,24 @@ class AnalyticsDeterministicTest {
         assertTrue(floor >= miss)
     }
 
-    @Test fun `analytics cache invalidates on version change`() {
+    @Test fun `analytics cache is keyed by the records it was computed from`() {
         val cache = AnalyticsCache()
         val h = habit(LocalDate.of(2026, 10, 1))
-        val result = HabitAnalyticsEngine.calculateAnalytics(h, emptyList(), clock = FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
-        cache.put(h, RecordsVersion(0, 0), true, true, result)
-        assertTrue(cache.get(h, RecordsVersion(0, 0), true, true) != null)
-        assertTrue(cache.get(h, RecordsVersion(1, 99), true, true) == null)
+        val clock = FixedKinetiqClock(LocalDate.of(2026, 10, 21))
+        val emptyResult = HabitAnalyticsEngine.calculateAnalytics(h, emptyList(), clock = clock)
+        cache.put(h, emptyList(), true, true, emptyResult)
+        assertTrue(cache.get(h, emptyList(), true, true) != null)
+        // A different records list must miss, even if it would share the same
+        // count/latest stamp timing as a stale emission (the old cache race).
+        val oneRecord = listOf(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true))
+        assertTrue(cache.get(h, oneRecord, true, true) == null)
+        // Recomputing from the new records and caching must then hit and
+        // return the new (non-zero) result, not the poisoned empty one.
+        val freshResult = HabitAnalyticsEngine.calculateAnalytics(h, oneRecord, clock = clock)
+        assertTrue(freshResult.habitStrengthPercent > 0)
+        cache.put(h, oneRecord, true, true, freshResult)
+        assertEquals(freshResult, cache.get(h, oneRecord, true, true))
         cache.invalidate(1)
-        assertTrue(cache.get(h, RecordsVersion(0, 0), true, true) == null)
+        assertTrue(cache.get(h, oneRecord, true, true) == null)
     }
 }

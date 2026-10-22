@@ -224,15 +224,17 @@ fun KinetiqDashboardScreen(
                 }
             }
 
-            item {
-                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CategoryChip(label = "All", count = habitCards.size, isSelected = selectedCategoryId == null) { viewModel.setCategoryId(null) }
-                    categories.forEach { cat ->
-                        CategoryChip(
-                            label = cat.name,
-                            count = habitCards.count { it.habit.categoryId == cat.id },
-                            isSelected = selectedCategoryId == cat.id
-                        ) { viewModel.setCategoryId(cat.id) }
+            if (habitCards.isNotEmpty()) {
+                item {
+                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        CategoryChip(label = "All", count = habitCards.size, isSelected = selectedCategoryId == null) { viewModel.setCategoryId(null) }
+                        categories.forEach { cat ->
+                            CategoryChip(
+                                label = cat.name,
+                                count = habitCards.count { it.habit.categoryId == cat.id },
+                                isSelected = selectedCategoryId == cat.id
+                            ) { viewModel.setCategoryId(cat.id) }
+                        }
                     }
                 }
             }
@@ -241,9 +243,15 @@ fun KinetiqDashboardScreen(
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "No habits found in this category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text(text = "Tap + to create your first habit or switch filter", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (habitCards.isEmpty()) {
+                                Text(text = "No habits yet", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(text = "Tap + to create your first habit", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            } else {
+                                Text(text = "No habits found in this category", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(text = "Tap + to create a habit or switch filter", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }

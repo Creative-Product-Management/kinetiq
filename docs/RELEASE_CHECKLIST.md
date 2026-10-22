@@ -8,7 +8,7 @@
 - [ ] Release AAB installed and smoke-tested on one physical low-end device
 
 ## Fresh-install smoke test
-- [ ] First launch seeds demo habits without blocking cold start
+- [ ] First launch shows an empty dashboard (no seeded habits); Settings -> Sample Habit -> Load adds exactly one sample habit with no logs, and deleting all habits survives relaunch
 - [ ] Create habit in each modality (Yes/No, Numeric with decimal target, Timer, Tally) and log target/floor/custom/friction
 - [ ] Timer only logs elapsed time; completing with 0s is impossible
 - [ ] Reminder fires, repeats next day, Done/Floor actions are idempotent, snooze works

@@ -274,11 +274,11 @@ fun SettingsScreen(
                 }
                 SettingsDivider()
                 SettingsActionRow(
-                    title = "Demo Habits",
-                    actionLabel = "Reload",
+                    title = "Sample Habit",
+                    actionLabel = "Load",
                     onClick = {
-                        viewModel.reseedDemoData()
-                        Toast.makeText(context, "Demo reloaded.", Toast.LENGTH_SHORT).show()
+                        viewModel.loadSampleHabit()
+                        Toast.makeText(context, "Sample habit loaded.", Toast.LENGTH_SHORT).show()
                     },
                     testTag = "reseed_data_btn"
                 )

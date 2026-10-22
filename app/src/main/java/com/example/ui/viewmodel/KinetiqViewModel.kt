@@ -12,7 +12,6 @@ import com.example.data.repository.HabitRepository
 import com.example.data.repository.HabitSortMode
 import com.example.data.repository.KinetiqSettings
 import com.example.data.repository.LogRepository
-import com.example.data.repository.RecordsVersion
 import com.example.data.repository.SettingsRepository
 import com.example.di.AppContainer
 import com.example.domain.analytics.AnalyticsCache
@@ -27,7 +26,6 @@ import com.example.ui.components.NudgeType
 import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -114,16 +112,18 @@ class KinetiqViewModel(
         .flatMapLatest { habit -> if (habit == null) flowOf(emptyList()) else logRepository.recordsForHabitWindow(habit.id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val detailVersion: Flow<RecordsVersion> = _selectedHabitForDetail
-        .flatMapLatest { habit -> if (habit == null) flowOf(RecordsVersion(0, 0)) else logRepository.recordsVersion(habit.id) }
-
+    // The analytics cache is keyed by the records list itself (see
+    // AnalyticsCache), so the cached result always matches the records in
+    // this emission. A separate version flow must not be used here: it can
+    // emit before the records flow and poison the cache with a result
+    // computed from a stale record list.
     val selectedAnalytics: StateFlow<HabitAnalyticsResult?> = combine(
-        _selectedHabitForDetail, detailRecords, detailVersion, settings
-    ) { habit, records, version, s ->
+        _selectedHabitForDetail, detailRecords, settings
+    ) { habit, records, s ->
         if (habit == null) null
-        else analyticsCache.get(habit, version, s.restShieldEnabled, s.weekStartsOnMonday) ?: HabitAnalyticsEngine.calculateAnalytics(
+        else analyticsCache.get(habit, records, s.restShieldEnabled, s.weekStartsOnMonday) ?: HabitAnalyticsEngine.calculateAnalytics(
             habit, records, restShieldEnabled = s.restShieldEnabled, weekStartsOnMonday = s.weekStartsOnMonday
-        ).also { analyticsCache.put(habit, version, s.restShieldEnabled, s.weekStartsOnMonday, it) }
+        ).also { analyticsCache.put(habit, records, s.restShieldEnabled, s.weekStartsOnMonday, it) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     /** Records in the Momentum window (last 91 days), kept separate from the 14-day day-strip window. */
@@ -329,7 +329,8 @@ class KinetiqViewModel(
     fun setDailyEveningDigestHour(hour: Int) { viewModelScope.launch { settingsRepository.setDailyEveningDigestHour(hour) } }
 
     fun resetAllRecords() { viewModelScope.launch { logRepository.clearAllRecords(); analyticsCache.clear() } }
-    fun reseedDemoData() { viewModelScope.launch { habitRepository.reseedData(); analyticsCache.clear() } }
+    /** Opt-in sample habit from Settings; no-op if one with the sample title already exists. */
+    fun loadSampleHabit() { viewModelScope.launch { habitRepository.loadSampleHabit() } }
 
     suspend fun exportBackup(passphrase: CharArray): ByteArray = container.backupManager.exportEncrypted(passphrase)
     suspend fun importBackup(bytes: ByteArray, passphrase: CharArray) { container.backupManager.importEncrypted(bytes, passphrase); analyticsCache.clear() }
