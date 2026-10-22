@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
 
         setContent {
-            val app = application as KinetiqHabitApplication
+            val app = application as KineticRoutinesApplication
             val viewModel: KinetiqViewModel = viewModel(factory = KinetiqViewModel.Factory(app.container))
             viewModelRef = viewModel
             LaunchedEffect(viewModel) {

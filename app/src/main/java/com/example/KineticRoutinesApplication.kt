@@ -5,7 +5,7 @@ import com.example.data.repository.HabitRepository
 import com.example.di.AppContainer
 import com.example.notification.HabitNotificationScheduler
 
-class KinetiqHabitApplication : Application() {
+class KineticRoutinesApplication : Application() {
 
     lateinit var container: AppContainer
         private set
@@ -25,7 +25,7 @@ class KinetiqHabitApplication : Application() {
     }
 
     companion object {
-        lateinit var instance: KinetiqHabitApplication
+        lateinit var instance: KineticRoutinesApplication
             private set
     }
 }

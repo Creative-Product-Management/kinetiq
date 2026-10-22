@@ -8,7 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.example.KinetiqHabitApplication
+import com.example.KineticRoutinesApplication
 import com.example.MainActivity
 import com.example.R
 import com.example.domain.time.DateCodec
@@ -41,7 +41,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                     val pending = goAsync()
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            val app = KinetiqHabitApplication.instance
+                            val app = KineticRoutinesApplication.instance
                             app.container.habitRepository.getHabitById(habitId)?.let { app.container.notificationScheduler.scheduleHabitReminder(it) }
                         } catch (_: Exception) { } finally { pending.finish() }
                     }
@@ -53,7 +53,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO).launch {
                     var ok = false
                     try {
-                        val app = KinetiqHabitApplication.instance
+                        val app = KineticRoutinesApplication.instance
                         val habit = app.container.habitRepository.getHabitById(habitId)
                         if (habit != null) {
                             val today = DateCodec.todayString(SystemKinetiqClock)
@@ -83,7 +83,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                 val pi = PendingIntent.getBroadcast(context, PendingIntentCodes.code(habitId, PendingIntentCodes.SALT_SNOOZE), snoozeIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                 val trigger = System.currentTimeMillis() + 15 * 60 * 1000
                 try {
-                    val scheduler = KinetiqHabitApplication.instance.container.notificationScheduler
+                    val scheduler = KineticRoutinesApplication.instance.container.notificationScheduler
                     if (scheduler.canScheduleExactAlarms() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, trigger, pi)
                     } else {
@@ -97,7 +97,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                 val pending = goAsync()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val app = KinetiqHabitApplication.instance
+                        val app = KineticRoutinesApplication.instance
                         val settings = app.container.settingsRepository.settings.first()
                         if (settings.dailyEveningDigestEnabled) {
                             val n = NotificationCompat.Builder(context, HabitNotificationScheduler.CHANNEL_NUDGES_ID)
