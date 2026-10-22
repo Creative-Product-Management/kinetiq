@@ -3,7 +3,7 @@ package com.example.data.repository
 import androidx.room.withTransaction
 import com.example.data.db.CategoryDao
 import com.example.data.db.HabitDao
-import com.example.data.db.KinetiqDatabase
+import com.example.data.db.KineticDatabase
 import com.example.data.db.LogEntryDao
 import com.example.data.model.Category
 import com.example.data.model.Habit
@@ -13,7 +13,7 @@ import com.example.data.model.RoutineStackEntity
 import kotlinx.coroutines.flow.Flow
 
 class HabitRepository(
-    private val database: KinetiqDatabase,
+    private val database: KineticDatabase,
     private val habitDao: HabitDao,
     private val logEntryDao: LogEntryDao,
     private val categoryDao: CategoryDao

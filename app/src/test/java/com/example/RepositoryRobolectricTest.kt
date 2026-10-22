@@ -6,7 +6,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.db.KinetiqDatabase
+import com.example.data.db.KineticDatabase
 import com.example.data.db.MIGRATION_2_3
 import com.example.data.model.Category
 import com.example.data.model.Habit
@@ -36,8 +36,8 @@ import java.time.ZoneId
 @Config(sdk = [34])
 class RepositoryRobolectricTest {
 
-    private fun newDb(context: Context): KinetiqDatabase =
-        Room.inMemoryDatabaseBuilder(context, KinetiqDatabase::class.java).allowMainThreadQueries().build()
+    private fun newDb(context: Context): KineticDatabase =
+        Room.inMemoryDatabaseBuilder(context, KineticDatabase::class.java).allowMainThreadQueries().build()
 
     @Test fun `tally increments are atomic under concurrency and completion is idempotent`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -198,7 +198,7 @@ class RepositoryRobolectricTest {
         val writable = helper.writableDatabase
         writable.close(); helper.close()
 
-        val db = Room.databaseBuilder(context, KinetiqDatabase::class.java, name)
+        val db = Room.databaseBuilder(context, KineticDatabase::class.java, name)
             .addMigrations(MIGRATION_2_3).allowMainThreadQueries().build()
         runBlocking {
             val habit = db.habitDao().getHabitById(7)

@@ -1,7 +1,7 @@
 package com.example.data.repository
 
 import androidx.room.withTransaction
-import com.example.data.db.KinetiqDatabase
+import com.example.data.db.KineticDatabase
 import com.example.data.db.LogEntryDao
 import com.example.data.model.Habit
 import com.example.data.model.HabitModality
@@ -12,7 +12,7 @@ import com.example.domain.time.SystemKinetiqClock
 import kotlinx.coroutines.flow.Flow
 
 class LogRepository(
-    private val database: KinetiqDatabase,
+    private val database: KineticDatabase,
     private val logEntryDao: LogEntryDao,
     private val clock: KinetiqClock = SystemKinetiqClock
 ) {
