@@ -14,7 +14,8 @@ right now?"* — not how perfect your all-time record is.
 - A **missed day** doesn't reset you to zero. Your score decays gently
   (×0.93 per missed day, roughly halving every 10 days).
 - **Rest days (Rest Shield) freeze the score** — no gain, no loss.
-- Days before you created the habit never count against you.
+- Days before you created the habit never count against you — but if
+  you backfill past days on a new habit, those logged days do count.
 
 ## How it's calculated
 
@@ -30,7 +31,8 @@ Momentum is an exponential moving average (EMA) over your daily results:
 | Rest day, not logged   | Score frozen (no update) |
 
 Only the **last 90 days** are considered, and the score is calculated
-starting from the day the habit was created.
+starting from the day the habit was created — or from its earliest
+logged day if you backfilled days from before you created it.
 
 ### What this feels like in practice
 
@@ -126,8 +128,11 @@ Momentum is implemented as `habitStrengthPercent` in
 ### Algorithm
 
 1. The engine walks day by day from
-   `max(today − 90 days, habit.createdDate)` to today, starting with
-   `strength = 0`.
+   `max(today − 90 days, habitStartDate)` to today, starting with
+   `strength = 0`, where `habitStartDate` is the earlier of
+   `habit.createdDate` and the habit's earliest log date (so backfilled
+   logs count; unlogged days before creation still cannot penalize,
+   since the EMA starts at 0).
 2. Each day maps to a value: `1.0` if the day's log has
    `isCompleted`, `0.65` if it has `isFloorSustained`, otherwise `0.0`.
    The `isCompleted` / `isFloorSustained` flags are set by
@@ -170,7 +175,8 @@ UI (available for a future momentum chart).
 
 `AnalyticsDeterministicTest` pins down the key properties:
 
-- A new habit is not penalized for days before its creation.
+- A new habit is not penalized for days before its creation, and
+  backfilled logs from before creation count toward Momentum/streaks.
 - A floor sustain scores strictly below a target completion and at or
   above a miss.
 - Rest Shield days preserve the streak/score without inflating them.

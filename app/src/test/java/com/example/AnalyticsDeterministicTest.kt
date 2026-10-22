@@ -32,6 +32,33 @@ class AnalyticsDeterministicTest {
         assertEquals(1, result.currentStreak)
     }
 
+    @Test fun `backfilled logs before creation count toward momentum and streak`() {
+        val today = LocalDate.of(2026, 10, 21)
+        // Habit created today, but the user backfills the past 6 days plus
+        // today from the home day-strip (7 consecutive target days).
+        val h = habit(today)
+        val records = (0..6).map { offset ->
+            LogEntry(habitId = 1, dateString = today.minusDays((6 - offset).toLong()).toString(), isCompleted = true)
+        }
+        val clock = FixedKineticClock(today)
+        val result = HabitAnalyticsEngine.calculateAnalytics(h, records, clock = clock)
+        // 7 target days of EMA: 1 - 0.93^7 ≈ 40%.
+        assertEquals(40, result.habitStrengthPercent)
+        assertEquals(40, HabitAnalyticsEngine.calculateMomentumPercent(h, records, clock = clock))
+        assertEquals(7, result.currentStreak)
+        assertEquals(7, result.bestStreak)
+    }
+
+    @Test fun `days before creation with no logs still do not penalize a new habit`() {
+        val today = LocalDate.of(2026, 10, 21)
+        val h = habit(today)
+        val result = HabitAnalyticsEngine.calculateAnalytics(
+            h, listOf(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true)),
+            clock = FixedKineticClock(today)
+        )
+        assertEquals(7, result.habitStrengthPercent)
+    }
+
     @Test fun `rest shield preserves but does not inflate streak`() {
         val today = LocalDate.of(2026, 10, 21) // Wed
         val created = LocalDate.of(2026, 10, 18)

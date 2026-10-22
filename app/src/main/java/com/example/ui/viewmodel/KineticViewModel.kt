@@ -52,10 +52,107 @@ data class HabitCardUi(
     val momentumPercent: Int = 0
 )
 
-/** MANUAL keeps the saved home order; MOMENTUM puts highest momentum first (ties keep manual order). */
+/**
+ * MANUAL keeps the saved home order. Momentum modes auto-sort by score;
+ * ties keep manual relative order ([orderIndex]) in both directions, so
+ * ascending is not simply the descending list reversed.
+ */
 fun sortHabitCards(cards: List<HabitCardUi>, mode: HabitSortMode): List<HabitCardUi> = when (mode) {
     HabitSortMode.MANUAL -> cards
-    HabitSortMode.MOMENTUM -> cards.sortedWith(compareByDescending<HabitCardUi> { it.momentumPercent }.thenBy { it.habit.orderIndex })
+    HabitSortMode.MOMENTUM_DESCENDING -> cards.sortedWith(compareByDescending<HabitCardUi> { it.momentumPercent }.thenBy { it.habit.orderIndex })
+    HabitSortMode.MOMENTUM_ASCENDING -> cards.sortedWith(compareBy<HabitCardUi> { it.momentumPercent }.thenBy { it.habit.orderIndex })
+}
+
+/**
+ * Hero slides for [today]: a stable slideshow that is always present while
+ * the user has habits. Slide ids, order, and types never change when habits
+ * are logged — logging today only updates the *text* of the first slide in
+ * place, so ticking a day circle never swaps the hero to a different slide.
+ *
+ * Slides: 1) Today's Momentum status, 2) Momentum progress, 3) Rest Shield,
+ * 4) Routine stacks, plus an optional friction insight appended last.
+ */
+fun buildInAppNudges(
+    habits: List<HabitEntity>,
+    records: List<HabitRecordEntity>,
+    stacks: List<RoutineStackEntity>,
+    today: LocalDate,
+    momentumPercents: Map<Long, Int> = emptyMap()
+): List<InAppNudgeData> {
+    if (habits.isEmpty()) return emptyList()
+    val todayStr = DateCodec.format(today)
+    val doneToday = records.filter { it.dateString == todayStr && (it.isCompleted || it.isFloorSustained) }.map { it.habitId }.toSet()
+    val stackById = stacks.associateBy { it.id }
+
+    // 1) Today's status — same slide before and after logging today.
+    val pendingToday = habits.firstOrNull { h -> h.id !in doneToday && !h.isRestDay(today.dayOfWeek.value) }
+    val todaySlide = InAppNudgeData(
+        id = "today-momentum",
+        type = NudgeType.MOMENTUM_BOOST,
+        title = "Today's Momentum",
+        subtitle = if (pendingToday != null) {
+            "${pendingToday.title} is not logged yet today. A floor log still counts."
+        } else {
+            "Everything due today is logged — today's Momentum is protected. Nice work."
+        },
+        actionLabel = if (pendingToday != null) "Log floor" else "View habit",
+        targetHabitId = (pendingToday ?: habits.first()).id
+    )
+
+    // 2) Momentum progress — strongest habit, or how the score builds.
+    val strongest = habits.maxByOrNull { momentumPercents[it.id] ?: 0 }
+    val strongestPercent = strongest?.let { momentumPercents[it.id] ?: 0 } ?: 0
+    val progressSlide = InAppNudgeData(
+        id = "momentum-progress",
+        type = NudgeType.INSIGHT,
+        title = "Momentum builds day by day",
+        subtitle = if (strongest != null && strongestPercent > 0) {
+            "${strongest.title} is your strongest habit at $strongestPercent%. A target day adds about 7% — consistency compounds."
+        } else {
+            "A target day adds about 7%. Seven target days in a row reach roughly 40%, and a floor day still earns 65% of a target."
+        },
+        actionLabel = "View habit",
+        targetHabitId = (strongest ?: habits.first()).id
+    )
+
+    // 3) Rest Shield — tomorrow's rest day if one is scheduled, else the concept.
+    val restTomorrow = habits.firstOrNull { it.isRestDay(today.plusDays(1).dayOfWeek.value) }
+    val restSlide = InAppNudgeData(
+        id = "rest-shield",
+        type = NudgeType.REST_SHIELD,
+        title = if (restTomorrow != null) "Rest shield tomorrow" else "Rest days protect Momentum",
+        subtitle = if (restTomorrow != null) {
+            "${restTomorrow.title} has a scheduled rest day tomorrow — decay stays frozen."
+        } else {
+            "Schedule rest days in a habit's editor and Momentum freezes on those days — no gain, no loss, streak preserved."
+        },
+        actionLabel = "View habit",
+        targetHabitId = (restTomorrow ?: habits.first()).id
+    )
+
+    // 4) Routine stacks — next stacked habit if one is pending, else the concept.
+    val stackPending = habits.firstOrNull { it.routineStackId != null && it.id !in doneToday }
+    val stackSlide = InAppNudgeData(
+        id = "routine-stacks",
+        type = NudgeType.STACK_PRIMED,
+        title = if (stackPending != null) "${stackById[stackPending.routineStackId]?.name ?: "Your stack"} is ready" else "Stack habits into routines",
+        subtitle = if (stackPending != null) {
+            "${stackPending.title} is next in ${stackById[stackPending.routineStackId]?.name ?: "your stack"} and not yet logged today."
+        } else {
+            "Group related habits into a routine stack in the habit editor, so finishing one habit cues the next."
+        },
+        actionLabel = if (stackPending != null) "Open habit" else "View habit",
+        targetHabitId = (stackPending ?: habits.first()).id
+    )
+
+    val slides = mutableListOf(todaySlide, progressSlide, restSlide, stackSlide)
+
+    // Optional, appended last so the core slideshow order never shifts.
+    val frictionCount = records.count { it.frictionTag != null }
+    if (frictionCount > 0) {
+        slides += InAppNudgeData("insight-friction", NudgeType.INSIGHT, "Friction logged $frictionCount time${if (frictionCount == 1) "" else "s"}", "Open a habit's analytics to see what most often blocks you.", "Review habits", targetHabitId = habits.first().id)
+    }
+    return slides
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -81,6 +178,9 @@ class KineticViewModel(
     val sortMode: StateFlow<HabitSortMode> = settings.map { it.sortMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSortMode.MANUAL)
 
     fun setSortMode(mode: HabitSortMode) { viewModelScope.launch { settingsRepository.setSortMode(mode) } }
+
+    /** Momentum chip tap: selects highest-first from Manual, then flips direction on each re-tap. */
+    fun selectMomentumSort() { setSortMode(sortMode.value.nextMomentum()) }
 
     val allHabits: StateFlow<List<HabitEntity>> = habitRepository.activeHabits
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -160,13 +260,19 @@ class KineticViewModel(
     val lastArchived: StateFlow<HabitEntity?> = _lastArchived.asStateFlow()
     private val _pendingDeepLinkHabitId = MutableStateFlow<Long?>(null)
 
-    /** Derived (not hardcoded) nudges, with persisted dismissals filtered out. */
-    val inAppNudges: StateFlow<List<InAppNudgeData>> = combine(allHabits, dashboardRecords, allStacks, settings) { habits, records, stacks, s ->
-        // Dismissals are scoped to a single day ("<id>@yyyy-MM-dd") so a nudge dismissed
+    /** Hero slideshow slides (from precomputed cards so Momentum is real), with dismissals filtered out. */
+    val inAppNudges: StateFlow<List<InAppNudgeData>> = combine(habitCards, dashboardRecords, allStacks, settings) { cards, records, stacks, s ->
+        // Dismissals are scoped to a single day ("<id>@yyyy-MM-dd") so a slide dismissed
         // yesterday reappears in a new session today. Bare ids written by older versions
         // are intentionally ignored, so previously dismissed heroes reappear after update.
         val today = DateCodec.todayString()
-        buildNudges(habits, records, stacks).filterNot { nudge ->
+        buildInAppNudges(
+            habits = cards.map { it.habit },
+            records = records,
+            stacks = stacks,
+            today = SystemKineticClock.today(),
+            momentumPercents = cards.associate { it.habit.id to it.momentumPercent }
+        ).filterNot { nudge ->
             isNudgeDismissed(nudge.id, s.dismissedNudgeIds, today)
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -185,31 +291,6 @@ class KineticViewModel(
                 else notificationScheduler.cancelEveningDigest()
             }
         }
-    }
-
-    private fun buildNudges(habits: List<HabitEntity>, records: List<HabitRecordEntity>, stacks: List<RoutineStackEntity>): List<InAppNudgeData> {
-        if (habits.isEmpty()) return emptyList()
-        val today = SystemKineticClock.today()
-        val todayStr = DateCodec.format(today)
-        val doneToday = records.filter { it.dateString == todayStr && (it.isCompleted || it.isFloorSustained) }.map { it.habitId }.toSet()
-        val nudges = mutableListOf<InAppNudgeData>()
-        val stackById = stacks.associateBy { it.id }
-        habits.firstOrNull { it.routineStackId != null && it.id !in doneToday }?.let { h ->
-            val stackName = stackById[h.routineStackId]?.name ?: "your stack"
-            nudges += InAppNudgeData("stack-${h.id}", NudgeType.STACK_PRIMED, "$stackName is ready", "${h.title} is next in $stackName and not yet logged today.", "Open habit", targetHabitId = h.id)
-        }
-        habits.firstOrNull { h -> h.id !in doneToday && !h.isRestDay(today.dayOfWeek.value) }?.let { h ->
-            nudges += InAppNudgeData("momentum-${h.id}", NudgeType.MOMENTUM_BOOST, "Protect today's momentum", "${h.title} is not logged yet today. A floor log still counts.", "Log floor", targetHabitId = h.id)
-        }
-        val tomorrow = today.plusDays(1)
-        habits.firstOrNull { it.isRestDay(tomorrow.dayOfWeek.value) }?.let { h ->
-            nudges += InAppNudgeData("rest-${h.id}", NudgeType.REST_SHIELD, "Rest shield tomorrow", "${h.title} has a scheduled rest day tomorrow — decay stays frozen.", "View habit", targetHabitId = h.id)
-        }
-        val frictionCount = records.count { it.frictionTag != null }
-        if (frictionCount > 0) {
-            nudges += InAppNudgeData("insight-friction", NudgeType.INSIGHT, "Friction logged $frictionCount time${if (frictionCount == 1) "" else "s"}", "Open a habit's analytics to see what most often blocks you.", "Review habits", targetHabitId = habits.first().id)
-        }
-        return nudges.take(4)
     }
 
     fun onNotificationDeepLink(habitId: Long) { if (habitId > 0) _pendingDeepLinkHabitId.value = habitId }
