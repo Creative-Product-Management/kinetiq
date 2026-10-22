@@ -16,7 +16,28 @@ import kotlinx.coroutines.flow.map
 // Brand rename: intentionally kept — renaming the DataStore would silently reset all user settings.
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "kinetiq_settings")
 
-enum class HabitSortMode { MANUAL, MOMENTUM }
+enum class HabitSortMode {
+    MANUAL,
+    MOMENTUM_DESCENDING,
+    MOMENTUM_ASCENDING;
+
+    val isMomentum: Boolean get() = this != MANUAL
+
+    /** Next mode when the Momentum chip is tapped: from Manual it starts highest-first, then flips. */
+    fun nextMomentum(): HabitSortMode = when (this) {
+        MANUAL, MOMENTUM_ASCENDING -> MOMENTUM_DESCENDING
+        MOMENTUM_DESCENDING -> MOMENTUM_ASCENDING
+    }
+
+    companion object {
+        /** Parses the persisted value; legacy "MOMENTUM" (pre-direction builds) means highest-first. */
+        fun fromStored(raw: String?): HabitSortMode = when (raw) {
+            MOMENTUM_DESCENDING.name, "MOMENTUM" -> MOMENTUM_DESCENDING
+            MOMENTUM_ASCENDING.name -> MOMENTUM_ASCENDING
+            else -> MANUAL
+        }
+    }
+}
 
 data class KineticSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
@@ -28,7 +49,7 @@ data class KineticSettings(
     /** Permanent user preference for the dashboard hero. When false the hero never renders. */
     val showHeroSection: Boolean = true,
     val dismissedNudgeIds: Set<String> = emptySet(),
-    /** Home ordering: manual drag order, or dynamic Momentum (highest first). */
+    /** Home ordering: manual drag order, or dynamic Momentum (highest/lowest first). */
     val sortMode: HabitSortMode = HabitSortMode.MANUAL
 )
 
@@ -45,7 +66,7 @@ class SettingsRepository(context: Context) {
             dailyEveningDigestHour = p[DIGEST_HOUR] ?: 21,
             showHeroSection = p[SHOW_HERO] ?: true,
             dismissedNudgeIds = p[DISMISSED_NUDGES] ?: emptySet(),
-            sortMode = runCatching { HabitSortMode.valueOf(p[SORT_MODE] ?: HabitSortMode.MANUAL.name) }.getOrDefault(HabitSortMode.MANUAL)
+            sortMode = HabitSortMode.fromStored(p[SORT_MODE])
         )
     }
 

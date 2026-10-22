@@ -94,6 +94,30 @@ class RepositoryRobolectricTest {
         db.close()
     }
 
+    @Test fun `backfilled day taps from before creation raise momentum`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = newDb(context)
+        val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
+        val today = LocalDate.of(2026, 10, 21)
+        val clock = FixedKineticClock(today)
+        val logRepo = LogRepository(db, db.logEntryDao(), clock)
+        // Habit created today (default createdAt would be now; pin it to today).
+        val createdMillis = today.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val id = habitRepo.saveHabit(Habit(title = "Read", modality = HabitModality.YES_NO, targetValue = 1.0, createdAt = createdMillis))
+        val habit = habitRepo.getHabitById(id)!!
+
+        // User taps every circle in the 7-day strip (6 past days + today).
+        for (offset in 6 downTo 0) {
+            logRepo.toggleHabitForDate(habit, today.minusDays(offset.toLong()).toString())
+        }
+        val records = db.logEntryDao().getLogsListForHabit(id)
+        assertEquals(7, records.size)
+        // Previously these pre-creation logs were ignored and this stayed 0.
+        assertEquals(40, HabitAnalyticsEngine.calculateMomentumPercent(habit, records, clock = clock))
+        assertEquals(40, HabitAnalyticsEngine.calculateAnalytics(habit, records, clock = clock).habitStrengthPercent)
+        db.close()
+    }
+
     @Test fun `sample habit loads once only and deleting all habits stays empty`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)

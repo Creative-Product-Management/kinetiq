@@ -36,6 +36,19 @@ data class HabitAnalyticsResult(
 object HabitAnalyticsEngine {
 
     /**
+     * First day analytics may count: the habit's creation date, or its
+     * earliest log if the user backfilled days from before the habit was
+     * created in the app (the home day-strip offers the past 7 days).
+     * Days before this are never counted — and never penalised either,
+     * since the EMA starts at 0 and missed days keep it at 0.
+     */
+    private fun habitStartDate(habit: HabitEntity, records: List<HabitRecordEntity>): LocalDate {
+        val createdDate = DateCodec.millisToDate(habit.createdAt)
+        val earliestLog = records.mapNotNull { DateCodec.parse(it.dateString) }.minOrNull()
+        return if (earliestLog != null && earliestLog.isBefore(createdDate)) earliestLog else createdDate
+    }
+
+    /**
      * Momentum only (0..100), using the exact EMA from [calculateAnalytics]:
      * target = 1.0, floor = 0.65, miss = 0.0, damping 0.93, last 90 days,
      * rest-shield days frozen. Cheap enough to compute per habit card.
@@ -47,10 +60,10 @@ object HabitAnalyticsEngine {
         restShieldEnabled: Boolean = true
     ): Int {
         val today = clock.today()
-        val createdDate = DateCodec.millisToDate(habit.createdAt)
+        val startDate = habitStartDate(habit, records)
         val recordMap = records.associateBy { it.dateString }
         var strength = 0.0f
-        var date = maxOf(today.minusDays(90), createdDate)
+        var date = maxOf(today.minusDays(90), startDate)
         while (!date.isAfter(today)) {
             val record = recordMap[DateCodec.format(date)]
             val isDone = record?.let { it.isCompleted || it.isFloorSustained } == true
@@ -76,14 +89,14 @@ object HabitAnalyticsEngine {
         weekStartsOnMonday: Boolean = true
     ): HabitAnalyticsResult {
         val today = clock.today()
-        val createdDate = DateCodec.millisToDate(habit.createdAt)
+        val createdDate = habitStartDate(habit, records)
         val recordMap = records.associateBy { it.dateString }
 
         fun isRest(date: LocalDate): Boolean = restShieldEnabled && habit.isRestDay(date.dayOfWeek.value)
         fun rec(date: LocalDate): HabitRecordEntity? = recordMap[DateCodec.format(date)]
         fun isDone(date: LocalDate): Boolean = rec(date)?.let { it.isCompleted || it.isFloorSustained } == true
 
-        // 1) Habit strength EMA from habit creation (never before it existed)
+        // 1) Habit strength EMA from the habit's first countable day (see habitStartDate)
         val historyDays = 90
         val windowStart = maxOf(today.minusDays(historyDays.toLong()), createdDate)
         val damping = 0.93f

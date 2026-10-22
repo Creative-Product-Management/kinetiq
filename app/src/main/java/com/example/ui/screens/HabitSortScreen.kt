@@ -66,13 +66,14 @@ fun HabitSortScreen(
     val habitCards by viewModel.habitCards.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val categories by viewModel.allCategories.collectAsStateWithLifecycle()
-    val isMomentumMode = sortMode == HabitSortMode.MOMENTUM
+    val isMomentumMode = sortMode.isMomentum
+    val isMomentumAscending = sortMode == HabitSortMode.MOMENTUM_ASCENDING
     val momentumById = remember(habitCards) { habitCards.associate { it.habit.id to it.momentumPercent } }
 
     var ordered by remember { mutableStateOf<List<HabitEntity>>(emptyList()) }
     var draggingIndex by remember { mutableIntStateOf(-1) }
     var dragOffsetY by remember { mutableFloatStateOf(0f) }
-    val displayedHabits = if (isMomentumMode) sortHabitCards(habitCards, HabitSortMode.MOMENTUM).map { it.habit } else ordered
+    val displayedHabits = if (isMomentumMode) sortHabitCards(habitCards, sortMode).map { it.habit } else ordered
 
     // Sync from DB when not actively dragging.
     LaunchedEffect(habits) {
@@ -116,15 +117,20 @@ fun HabitSortScreen(
                 )
                 Spacer(Modifier.width(10.dp))
                 SortModeChip(
-                    label = "Momentum Score",
+                    // ↓ = highest first, ↑ = lowest first; re-tapping flips (see helper text).
+                    label = if (isMomentumAscending) "Momentum Score ↑" else "Momentum Score ↓",
                     selected = isMomentumMode,
-                    onClick = { viewModel.setSortMode(HabitSortMode.MOMENTUM) },
+                    onClick = { viewModel.selectMomentumSort() },
                     testTag = "sort_mode_momentum",
                     modifier = Modifier.weight(1f)
                 )
             }
             Text(
-                text = if (isMomentumMode) "Highest Momentum first. Order updates as scores change." else "Long-press and drag to reorder",
+                text = when {
+                    isMomentumAscending -> "Lowest Momentum first — auto-sorted. Tap Momentum Score again for highest first. Order updates as scores change."
+                    isMomentumMode -> "Highest Momentum first — auto-sorted. Tap Momentum Score again for lowest first. Order updates as scores change."
+                    else -> "Long-press and drag to reorder"
+                },
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
@@ -190,12 +196,24 @@ fun HabitSortScreen(
                                 .padding(horizontal = 12.dp)
                                 .testTag("sort_row_${habit.id}")
                         ) {
-                            Icon(
-                                Icons.Default.DragHandle,
-                                contentDescription = "Drag to reorder ${habit.title}",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
+                            if (isMomentumMode) {
+                                // Auto-sorted: show rank instead of a drag affordance.
+                                Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "#${index + 1}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                Icon(
+                                    Icons.Default.DragHandle,
+                                    contentDescription = "Drag to reorder ${habit.title}",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(

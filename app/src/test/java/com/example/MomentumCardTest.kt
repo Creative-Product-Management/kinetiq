@@ -42,6 +42,31 @@ class MomentumCardTest {
         val cards = listOf(card(1, 0, 20), card(2, 1, 85), card(3, 2, 85), card(4, 3, 50))
         assertEquals(listOf(1L, 2L, 3L, 4L), sortHabitCards(cards, HabitSortMode.MANUAL).map { it.habit.id })
         // Highest first; the two 85% habits keep their manual relative order.
-        assertEquals(listOf(2L, 3L, 4L, 1L), sortHabitCards(cards, HabitSortMode.MOMENTUM).map { it.habit.id })
+        assertEquals(listOf(2L, 3L, 4L, 1L), sortHabitCards(cards, HabitSortMode.MOMENTUM_DESCENDING).map { it.habit.id })
+    }
+
+    @Test fun `momentum ascending is lowest first and ties keep manual order`() {
+        fun card(id: Long, order: Int, momentum: Int) = HabitCardUi(
+            habit = Habit(id = id, title = "H$id", orderIndex = order),
+            categoryName = "General", recentDays = emptyList(), momentumPercent = momentum
+        )
+        val cards = listOf(card(1, 0, 20), card(2, 1, 85), card(3, 2, 85), card(4, 3, 50))
+        // Lowest first; the two 85% habits keep manual order (not a reversed descending list).
+        assertEquals(listOf(1L, 4L, 2L, 3L), sortHabitCards(cards, HabitSortMode.MOMENTUM_ASCENDING).map { it.habit.id })
+    }
+
+    @Test fun `momentum chip tap starts highest-first then flips direction`() {
+        assertEquals(HabitSortMode.MOMENTUM_DESCENDING, HabitSortMode.MANUAL.nextMomentum())
+        assertEquals(HabitSortMode.MOMENTUM_ASCENDING, HabitSortMode.MOMENTUM_DESCENDING.nextMomentum())
+        assertEquals(HabitSortMode.MOMENTUM_DESCENDING, HabitSortMode.MOMENTUM_ASCENDING.nextMomentum())
+    }
+
+    @Test fun `stored legacy momentum maps to highest-first and unknown falls back to manual`() {
+        assertEquals(HabitSortMode.MOMENTUM_DESCENDING, HabitSortMode.fromStored("MOMENTUM"))
+        assertEquals(HabitSortMode.MOMENTUM_DESCENDING, HabitSortMode.fromStored("MOMENTUM_DESCENDING"))
+        assertEquals(HabitSortMode.MOMENTUM_ASCENDING, HabitSortMode.fromStored("MOMENTUM_ASCENDING"))
+        assertEquals(HabitSortMode.MANUAL, HabitSortMode.fromStored("MANUAL"))
+        assertEquals(HabitSortMode.MANUAL, HabitSortMode.fromStored(null))
+        assertEquals(HabitSortMode.MANUAL, HabitSortMode.fromStored("bogus"))
     }
 }
