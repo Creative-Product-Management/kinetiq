@@ -18,7 +18,7 @@ import com.example.domain.analytics.AnalyticsCache
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.analytics.HabitAnalyticsResult
 import com.example.domain.time.DateCodec
-import com.example.domain.time.SystemKinetiqClock
+import com.example.domain.time.SystemKineticClock
 import com.example.notification.HabitNotificationScheduler
 import com.example.ui.components.DayStripItem
 import com.example.ui.components.InAppNudgeData
@@ -189,7 +189,7 @@ class KineticViewModel(
 
     private fun buildNudges(habits: List<HabitEntity>, records: List<HabitRecordEntity>, stacks: List<RoutineStackEntity>): List<InAppNudgeData> {
         if (habits.isEmpty()) return emptyList()
-        val today = SystemKinetiqClock.today()
+        val today = SystemKineticClock.today()
         val todayStr = DateCodec.format(today)
         val doneToday = records.filter { it.dateString == todayStr && (it.isCompleted || it.isFloorSustained) }.map { it.habitId }.toSet()
         val nudges = mutableListOf<InAppNudgeData>()
@@ -337,7 +337,7 @@ class KineticViewModel(
 
     fun buildRecent7Days(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true): List<DayStripItem> {
         val recordMap = habitRecords.associateBy { it.dateString }
-        val today: LocalDate = SystemKinetiqClock.today()
+        val today: LocalDate = SystemKineticClock.today()
         // Anchor the strip so it ends today; weekday letters come from the actual date.
         return (6 downTo 0).map { offset ->
             val date = today.minusDays(offset.toLong())

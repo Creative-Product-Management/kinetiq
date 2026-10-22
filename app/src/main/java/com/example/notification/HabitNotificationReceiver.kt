@@ -12,7 +12,7 @@ import com.example.KineticRoutinesApplication
 import com.example.MainActivity
 import com.example.R
 import com.example.domain.time.DateCodec
-import com.example.domain.time.SystemKinetiqClock
+import com.example.domain.time.SystemKineticClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -56,7 +56,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                         val app = KineticRoutinesApplication.instance
                         val habit = app.container.habitRepository.getHabitById(habitId)
                         if (habit != null) {
-                            val today = DateCodec.todayString(SystemKinetiqClock)
+                            val today = DateCodec.todayString(SystemKineticClock)
                             if (action == ACTION_COMPLETE_TARGET) app.container.logRepository.setCompletedForDate(habit, today)
                             else app.container.logRepository.logFloorSustainForDate(habit, today)
                             ok = true

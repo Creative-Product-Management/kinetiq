@@ -5,7 +5,7 @@ import com.example.data.model.HabitModality
 import com.example.data.model.LogEntry
 import com.example.data.repository.HabitSortMode
 import com.example.domain.analytics.HabitAnalyticsEngine
-import com.example.domain.time.FixedKinetiqClock
+import com.example.domain.time.FixedKineticClock
 import com.example.ui.viewmodel.HabitCardUi
 import com.example.ui.viewmodel.sortHabitCards
 import org.junit.Assert.assertEquals
@@ -27,7 +27,7 @@ class MomentumCardTest {
             if (offset % 3 == 2) LogEntry(habitId = 7, dateString = date, isFloorSustained = true)
             else LogEntry(habitId = 7, dateString = date, isCompleted = true)
         }
-        val clock = FixedKinetiqClock(today)
+        val clock = FixedKineticClock(today)
         val cardMomentum = HabitAnalyticsEngine.calculateMomentumPercent(habit, records, clock = clock)
         val detailMomentum = HabitAnalyticsEngine.calculateAnalytics(habit, records, clock = clock).habitStrengthPercent
         assertEquals(detailMomentum, cardMomentum)

@@ -16,7 +16,7 @@ import com.example.data.repository.HabitRepository
 import com.example.data.repository.LogRepository
 import com.example.domain.analytics.HabitAnalyticsEngine
 import com.example.domain.time.DateCodec
-import com.example.domain.time.FixedKinetiqClock
+import com.example.domain.time.FixedKineticClock
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
@@ -43,7 +43,7 @@ class RepositoryRobolectricTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)
         val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
-        val logRepo = LogRepository(db, db.logEntryDao(), FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
+        val logRepo = LogRepository(db, db.logEntryDao(), FixedKineticClock(LocalDate.of(2026, 10, 21)))
         val today = "2026-10-21"
         val id = habitRepo.saveHabit(Habit(title = "Sprints", modality = HabitModality.TALLY, targetValue = 3.0, floorValue = 1.0, unit = "sprints"))
         val habit = habitRepo.getHabitById(id)!!
@@ -69,7 +69,7 @@ class RepositoryRobolectricTest {
         val db = newDb(context)
         val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
         val today = LocalDate.of(2026, 10, 21)
-        val clock = FixedKinetiqClock(today)
+        val clock = FixedKineticClock(today)
         val logRepo = LogRepository(db, db.logEntryDao(), clock)
         val createdMillis = today.minusDays(7).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val id = habitRepo.saveHabit(Habit(title = "Meditate", modality = HabitModality.YES_NO, targetValue = 1.0, createdAt = createdMillis))
@@ -145,7 +145,7 @@ class RepositoryRobolectricTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = newDb(context)
         val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
-        val logRepo = LogRepository(db, db.logEntryDao(), FixedKinetiqClock(LocalDate.of(2026, 10, 21)))
+        val logRepo = LogRepository(db, db.logEntryDao(), FixedKineticClock(LocalDate.of(2026, 10, 21)))
         val id = habitRepo.saveHabit(Habit(title = "Water", modality = HabitModality.NUMERIC, targetValue = 2500.0, unit = "ml"))
         db.logEntryDao().insertOrUpdate(LogEntry(habitId = id, dateString = "2026-09-01", isCompleted = true, numericValue = 2500.0))
         db.logEntryDao().insertOrUpdate(LogEntry(habitId = id, dateString = "2026-10-21", isCompleted = true, numericValue = 2500.0))
