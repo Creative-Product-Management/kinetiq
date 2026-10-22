@@ -28,16 +28,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.KinetiqEmerald
-import com.example.ui.theme.KinetiqEmeraldGlow
-import com.example.ui.theme.KinetiqViolet
+import com.example.ui.theme.KineticEmerald
+import com.example.ui.theme.KineticEmeraldGlow
+import com.example.ui.theme.KineticViolet
 
 @Composable
-fun KinetiqGauge(
+fun KineticGauge(
     strengthPercent: Int,
     trajectory: String,
     modifier: Modifier = Modifier,
-    habitColor: Color = KinetiqEmerald
+    habitColor: Color = KineticEmerald
 ) {
     val animatedPercent = remember { Animatable(0f) }
 
@@ -48,11 +48,11 @@ fun KinetiqGauge(
         )
     }
 
-    val primaryAccent = if (habitColor != Color.Unspecified) habitColor else KinetiqEmerald
+    val primaryAccent = if (habitColor != Color.Unspecified) habitColor else KineticEmerald
     val gradientColors = listOf(
         primaryAccent,
-        KinetiqViolet,
-        KinetiqEmeraldGlow
+        KineticViolet,
+        KineticEmeraldGlow
     )
 
     val trackColor = MaterialTheme.colorScheme.outline
@@ -110,9 +110,9 @@ fun KinetiqGauge(
             )
             Spacer(modifier = Modifier.height(4.dp))
             val badgeColor = when {
-                strengthPercent >= 70 -> KinetiqEmerald
+                strengthPercent >= 70 -> KineticEmerald
                 strengthPercent >= 40 -> FloorGold
-                else -> KinetiqViolet
+                else -> KineticViolet
             }
             Text(
                 text = trajectory.uppercase(),

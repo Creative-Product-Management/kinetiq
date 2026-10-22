@@ -23,13 +23,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.KinetiqEmerald
+import com.example.ui.theme.KineticEmerald
 import kotlin.math.roundToInt
 
 @Composable
 fun WeeklyBarChart(
     dayRates: List<Float>, // size 7: Mon..Sun
-    habitColor: Color = KinetiqEmerald,
+    habitColor: Color = KineticEmerald,
     modifier: Modifier = Modifier
 ) {
     val labels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")

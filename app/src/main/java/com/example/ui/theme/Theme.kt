@@ -22,16 +22,16 @@ enum class ThemeMode(val displayName: String) {
     SYSTEM("System Default")
 }
 
-private val KinetiqDarkColorScheme = darkColorScheme(
-    primary = KinetiqEmerald,
+private val KineticDarkColorScheme = darkColorScheme(
+    primary = KineticEmerald,
     onPrimary = Color.Black,
     primaryContainer = CardSurfaceElevated,
-    onPrimaryContainer = KinetiqEmeraldGlow,
-    secondary = KinetiqViolet,
+    onPrimaryContainer = KineticEmeraldGlow,
+    secondary = KineticViolet,
     onSecondary = Color.White,
     secondaryContainer = CardSurfaceElevated,
     onSecondaryContainer = Color(0xFFDDD6FE),
-    tertiary = KinetiqAmber,
+    tertiary = KineticAmber,
     onTertiary = Color.Black,
     background = VoidBackground,
     onBackground = TextPrimary,
@@ -44,7 +44,7 @@ private val KinetiqDarkColorScheme = darkColorScheme(
     onError = Color.White
 )
 
-private val KinetiqLightColorScheme = lightColorScheme(
+private val KineticLightColorScheme = lightColorScheme(
     primary = Color(0xFF059669),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD1FAE5),
@@ -67,7 +67,7 @@ private val KinetiqLightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun KinetiqHabitTheme(
+fun KineticRoutinesTheme(
     themeMode: ThemeMode = ThemeMode.DARK,
     content: @Composable () -> Unit
 ) {
@@ -77,7 +77,7 @@ fun KinetiqHabitTheme(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    val colorScheme = if (isDark) KinetiqDarkColorScheme else KinetiqLightColorScheme
+    val colorScheme = if (isDark) KineticDarkColorScheme else KineticLightColorScheme
     val view = LocalView.current
 
     LaunchedEffect(isDark, colorScheme.background) {
@@ -112,5 +112,5 @@ private tailrec fun Context.findActivity(): ComponentActivity? = when (this) {
 fun MyApplicationTheme(
     content: @Composable () -> Unit
 ) {
-    KinetiqHabitTheme(themeMode = ThemeMode.DARK, content = content)
+    KineticRoutinesTheme(themeMode = ThemeMode.DARK, content = content)
 }

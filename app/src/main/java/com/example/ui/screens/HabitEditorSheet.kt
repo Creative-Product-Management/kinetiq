@@ -77,8 +77,8 @@ import com.example.data.model.HabitModality
 import com.example.data.model.RoutineStackEntity
 import com.example.domain.validation.HabitValidator
 import com.example.ui.theme.FloorGold
-import com.example.ui.theme.KinetiqEmerald
-import com.example.ui.theme.KinetiqViolet
+import com.example.ui.theme.KineticEmerald
+import com.example.ui.theme.KineticViolet
 import com.example.ui.theme.MissedRed
 import com.example.ui.theme.parseHabitColor
 
@@ -190,15 +190,15 @@ fun HabitEditorSheet(
         cursorColor = FloorGold
     )
     val cueFieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = KinetiqViolet,
+        focusedBorderColor = KineticViolet,
         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedTextColor = MaterialTheme.colorScheme.onSurface,
         unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-        focusedLabelColor = KinetiqViolet,
+        focusedLabelColor = KineticViolet,
         unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedContainerColor = MaterialTheme.colorScheme.surface,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        cursorColor = KinetiqViolet
+        cursorColor = KineticViolet
     )
 
     val selectedCategoryName = categories.firstOrNull { it.id == categoryId }?.name ?: "General"
@@ -351,7 +351,7 @@ fun HabitEditorSheet(
             ) {
                 OutlinedTextField(
                     value = cueTrigger, onValueChange = { cueTrigger = it },
-                    label = { Text("Cue (optional)", color = KinetiqViolet) },
+                    label = { Text("Cue (optional)", color = KineticViolet) },
                     placeholder = { Text("e.g., After I pour my morning coffee...", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
                     supportingText = { Text("After I [cue], I will do this habit.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
                     singleLine = true,
@@ -457,9 +457,9 @@ fun HabitEditorSheet(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Reminder", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        Text(text = if (hasReminder) String.format("%02d:%02d on selected days", reminderHour, reminderMinute) else "Off", fontSize = 11.sp, color = if (hasReminder) KinetiqEmerald else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(text = if (hasReminder) String.format("%02d:%02d on selected days", reminderHour, reminderMinute) else "Off", fontSize = 11.sp, color = if (hasReminder) KineticEmerald else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(checked = hasReminder, onCheckedChange = { hasReminder = it }, colors = SwitchDefaults.colors(checkedThumbColor = KinetiqEmerald, checkedTrackColor = Color(0xFF0F3A2A)))
+                    Switch(checked = hasReminder, onCheckedChange = { hasReminder = it }, colors = SwitchDefaults.colors(checkedThumbColor = KineticEmerald, checkedTrackColor = Color(0xFF0F3A2A)))
                 }
                 if (hasReminder) {
                     Spacer(modifier = Modifier.height(8.dp))
@@ -469,7 +469,7 @@ fun HabitEditorSheet(
                     Spacer(modifier = Modifier.height(10.dp))
                     Text("Reminder days", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
-                    DayMaskRow(mask = reminderDaysMask, daysOfWeek = daysOfWeek, selectedColor = KinetiqEmerald, borderColor = KinetiqEmerald) { reminderDaysMask = it }
+                    DayMaskRow(mask = reminderDaysMask, daysOfWeek = daysOfWeek, selectedColor = KineticEmerald, borderColor = KineticEmerald) { reminderDaysMask = it }
                 }
             }
 

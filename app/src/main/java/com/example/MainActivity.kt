@@ -26,9 +26,9 @@ import com.example.ui.screens.FaqScreen
 import com.example.ui.screens.HabitDetailAnalyticsScreen
 import com.example.ui.screens.HabitEditorSheet
 import com.example.ui.screens.HabitSortScreen
-import com.example.ui.screens.KinetiqDashboardScreen
+import com.example.ui.screens.KineticDashboardScreen
 import com.example.ui.screens.SettingsScreen
-import com.example.ui.theme.KinetiqHabitTheme
+import com.example.ui.theme.KineticRoutinesTheme
 import com.example.ui.viewmodel.KineticViewModel
 
 class MainActivity : ComponentActivity() {
@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
             }
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
 
-            KinetiqHabitTheme(themeMode = themeMode) {
+            KineticRoutinesTheme(themeMode = themeMode) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     val navController = rememberNavController()
                     val pendingDetail by viewModel.selectedHabitForDetail.collectAsStateWithLifecycle()
@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(navController = navController, startDestination = "dashboard") {
                         composable("dashboard") {
-                            KinetiqDashboardScreen(
+                            KineticDashboardScreen(
                                 viewModel = viewModel,
                                 onOpenHabitDetail = { id -> navController.navigate("detail/$id") },
                                 onOpenEditor = { id -> navController.navigate(if (id == null) "editor" else "editor?habitId=$id") },

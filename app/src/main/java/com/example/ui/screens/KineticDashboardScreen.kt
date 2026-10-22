@@ -88,7 +88,7 @@ import com.example.ui.viewmodel.sortHabitCards
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KinetiqDashboardScreen(
+fun KineticDashboardScreen(
     viewModel: KineticViewModel,
     onOpenHabitDetail: (Long) -> Unit = { viewModel.selectHabitById(it) },
     onOpenEditor: (Long?) -> Unit = { if (it == null) viewModel.openNewHabitEditor() },

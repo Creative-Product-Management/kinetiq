@@ -44,8 +44,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.ui.theme.KinetiqEmerald
-import com.example.ui.theme.KinetiqViolet
+import com.example.ui.theme.KineticEmerald
+import com.example.ui.theme.KineticViolet
 
 /** True only when the OS will actually show this app's notifications. */
 fun areAppNotificationsEnabled(context: Context): Boolean =
@@ -100,13 +100,13 @@ fun NotificationSettingsDialog(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(KinetiqViolet.copy(alpha = 0.2f)),
+                        .background(KineticViolet.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.NotificationsActive,
                         contentDescription = "Notifications",
-                        tint = KinetiqViolet,
+                        tint = KineticViolet,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -124,7 +124,7 @@ fun NotificationSettingsDialog(
                 if (!notificationsEnabled) {
                     Button(
                         onClick = { openAppNotificationSettings(context) },
-                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqViolet),
+                        colors = ButtonDefaults.buttonColors(containerColor = KineticViolet),
                         modifier = Modifier.fillMaxWidth().testTag("open_notification_settings_btn")
                     ) {
                         Icon(imageVector = Icons.Default.Settings, contentDescription = null)
@@ -137,7 +137,7 @@ fun NotificationSettingsDialog(
                             onSendTestNotification()
                             testSentConfirmation = true
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = KinetiqEmerald),
+                        colors = ButtonDefaults.buttonColors(containerColor = KineticEmerald),
                         modifier = Modifier.fillMaxWidth().testTag("send_test_notification_btn")
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.Black)
@@ -151,7 +151,7 @@ fun NotificationSettingsDialog(
                             text = "Test sent.",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = KinetiqEmerald
+                            color = KineticEmerald
                         )
                     }
                 }
