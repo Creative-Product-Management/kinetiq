@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Kinetiq"
+rootProject.name = "KineticRoutines"
 
 include(":app")
