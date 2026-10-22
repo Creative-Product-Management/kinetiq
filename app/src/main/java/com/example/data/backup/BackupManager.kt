@@ -51,6 +51,7 @@ data class BackupPayload(
 ) { companion object { const val CURRENT_SCHEMA = 1 } }
 
 @JsonClass(generateAdapter = false)
+// Brand rename: the format string is intentionally kept — changing it would reject every previously exported backup.
 data class BackupEnvelope(val format: String = "kinetiq-backup", val version: Int = 1, val salt: String, val iv: String, val data: String)
 
 /** Passphrase-encrypted, portable backup. AES-GCM with PBKDF2-derived key; no plaintext leaves the app. */

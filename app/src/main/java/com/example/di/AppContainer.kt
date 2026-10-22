@@ -15,7 +15,7 @@ class AppContainer(context: Context) {
     val database: KineticDatabase = Room.databaseBuilder(
         context.applicationContext,
         KineticDatabase::class.java,
-        "orbit_habit_database" // keep legacy file name so existing installs keep their data
+        "orbit_habit_database" // Brand rename: intentionally kept legacy file name so existing installs keep their data
     ).addMigrations(*KineticDatabase.ALL_MIGRATIONS).build()
 
     val habitRepository: HabitRepository = HabitRepository(database, database.habitDao(), database.logEntryDao(), database.categoryDao())

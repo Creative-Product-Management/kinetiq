@@ -13,6 +13,7 @@ import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+// Brand rename: intentionally kept — renaming the DataStore would silently reset all user settings.
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "kinetiq_settings")
 
 enum class HabitSortMode { MANUAL, MOMENTUM }
