@@ -29,11 +29,11 @@ import com.example.ui.screens.HabitSortScreen
 import com.example.ui.screens.KinetiqDashboardScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.KinetiqHabitTheme
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.KineticViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private var viewModelRef: KinetiqViewModel? = null
+    private var viewModelRef: KineticViewModel? = null
     private var pendingDeepLinkId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val app = application as KineticRoutinesApplication
-            val viewModel: KinetiqViewModel = viewModel(factory = KinetiqViewModel.Factory(app.container))
+            val viewModel: KineticViewModel = viewModel(factory = KineticViewModel.Factory(app.container))
             viewModelRef = viewModel
             LaunchedEffect(viewModel) {
                 if (pendingDeepLinkId > 0) { viewModel.onNotificationDeepLink(pendingDeepLinkId); pendingDeepLinkId = -1L }

@@ -17,7 +17,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 enum class HabitSortMode { MANUAL, MOMENTUM }
 
-data class KinetiqSettings(
+data class KineticSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val weekStartsOnMonday: Boolean = true,
     val defaultFloorPercent: Int = 25,
@@ -34,8 +34,8 @@ data class KinetiqSettings(
 class SettingsRepository(context: Context) {
     private val store = context.applicationContext.dataStore
 
-    val settings: Flow<KinetiqSettings> = store.data.map { p ->
-        KinetiqSettings(
+    val settings: Flow<KineticSettings> = store.data.map { p ->
+        KineticSettings(
             themeMode = runCatching { ThemeMode.valueOf(p[THEME] ?: ThemeMode.DARK.name) }.getOrDefault(ThemeMode.DARK),
             weekStartsOnMonday = p[WEEK_MONDAY] ?: true,
             defaultFloorPercent = p[FLOOR_PCT] ?: 25,

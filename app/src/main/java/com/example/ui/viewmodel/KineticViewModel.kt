@@ -10,7 +10,7 @@ import com.example.data.model.HabitRecordEntity
 import com.example.data.model.RoutineStackEntity
 import com.example.data.repository.HabitRepository
 import com.example.data.repository.HabitSortMode
-import com.example.data.repository.KinetiqSettings
+import com.example.data.repository.KineticSettings
 import com.example.data.repository.LogRepository
 import com.example.data.repository.SettingsRepository
 import com.example.di.AppContainer
@@ -59,7 +59,7 @@ fun sortHabitCards(cards: List<HabitCardUi>, mode: HabitSortMode): List<HabitCar
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class KinetiqViewModel(
+class KineticViewModel(
     private val habitRepository: HabitRepository,
     private val logRepository: LogRepository,
     private val settingsRepository: SettingsRepository,
@@ -68,8 +68,8 @@ class KinetiqViewModel(
     private val container: AppContainer
 ) : ViewModel() {
 
-    val settings: StateFlow<KinetiqSettings> = settingsRepository.settings
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KinetiqSettings())
+    val settings: StateFlow<KineticSettings> = settingsRepository.settings
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KineticSettings())
     val themeMode: StateFlow<ThemeMode> = settings.map { it.themeMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.DARK)
     val weekStartsOnMonday: StateFlow<Boolean> = settings.map { it.weekStartsOnMonday }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val defaultFloorPercent: StateFlow<Int> = settings.map { it.defaultFloorPercent }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 25)
@@ -359,8 +359,8 @@ class KinetiqViewModel(
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            require(modelClass.isAssignableFrom(KinetiqViewModel::class.java))
-            return KinetiqViewModel(
+            require(modelClass.isAssignableFrom(KineticViewModel::class.java))
+            return KineticViewModel(
                 container.habitRepository, container.logRepository, container.settingsRepository,
                 container.notificationScheduler, container.analyticsCache, container
             ) as T

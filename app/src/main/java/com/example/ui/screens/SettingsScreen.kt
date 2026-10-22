@@ -72,13 +72,13 @@ import com.example.ui.components.openAppNotificationSettings
 import com.example.ui.theme.FloorGold
 import com.example.ui.theme.MissedRed
 import com.example.ui.theme.ThemeMode
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.KineticViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    viewModel: KinetiqViewModel,
+    viewModel: KineticViewModel,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {

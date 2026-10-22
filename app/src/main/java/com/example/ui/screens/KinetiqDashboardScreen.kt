@@ -83,13 +83,13 @@ import com.example.ui.components.InAppNudgeHero
 import com.example.ui.components.NotificationSettingsDialog
 import com.example.ui.components.QuickLogDialog
 import com.example.ui.theme.Fraunces
-import com.example.ui.viewmodel.KinetiqViewModel
+import com.example.ui.viewmodel.KineticViewModel
 import com.example.ui.viewmodel.sortHabitCards
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KinetiqDashboardScreen(
-    viewModel: KinetiqViewModel,
+    viewModel: KineticViewModel,
     onOpenHabitDetail: (Long) -> Unit = { viewModel.selectHabitById(it) },
     onOpenEditor: (Long?) -> Unit = { if (it == null) viewModel.openNewHabitEditor() },
     onOpenSettings: () -> Unit = { viewModel.openSettings() },

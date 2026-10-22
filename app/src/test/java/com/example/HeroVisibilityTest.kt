@@ -1,6 +1,6 @@
 package com.example
 
-import com.example.data.repository.KinetiqSettings
+import com.example.data.repository.KineticSettings
 import androidx.compose.ui.unit.dp
 import com.example.ui.components.HERO_AUTO_ADVANCE_DELAY_MILLIS
 import com.example.ui.components.HERO_SLIDE_HEIGHT
@@ -15,8 +15,8 @@ import org.junit.Test
 class HeroVisibilityTest {
 
     @Test fun `hero is shown by default and can be permanently hidden via settings`() {
-        assertTrue(KinetiqSettings().showHeroSection)
-        assertFalse(KinetiqSettings(showHeroSection = false).showHeroSection)
+        assertTrue(KineticSettings().showHeroSection)
+        assertFalse(KineticSettings(showHeroSection = false).showHeroSection)
     }
 
     @Test fun `dismissal hides the nudge only for that day`() {
