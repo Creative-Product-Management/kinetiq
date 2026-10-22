@@ -135,12 +135,12 @@ fun KinetiqDashboardScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
                             painter = painterResource(R.drawable.ic_orbit_foreground_1792527364716),
-                            contentDescription = "Kinetiq",
+                            contentDescription = "Routines",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = "Kinetiq", fontFamily = Fraunces, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
+                        Text(text = "Routines", fontFamily = Fraunces, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 actions = {

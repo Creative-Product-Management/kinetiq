@@ -257,7 +257,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = { exportLauncher.launch("kinetiq-backup.kqbak") },
+                        onClick = { exportLauncher.launch("kinetic-routines-backup.kqbak") },
                         enabled = backupPassphrase.length >= 8,
                         modifier = Modifier.weight(1f).testTag("export_data_btn")
                     ) { Text("Export", fontSize = 12.sp) }
@@ -306,7 +306,7 @@ fun SettingsScreen(
             }
 
             Text(
-                "Kinetiq ${BuildConfig.VERSION_NAME}",
+                "Kinetic Routines ${BuildConfig.VERSION_NAME}",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp, bottom = 24.dp)

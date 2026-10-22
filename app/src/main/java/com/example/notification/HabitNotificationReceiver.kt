@@ -66,7 +66,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                         showFeedback(
                             context, notificationManager, habitId,
                             if (ok) (if (action == ACTION_COMPLETE_TARGET) "Target Achieved!" else "Minimum Floor Sustained!") else "Could not log",
-                            if (ok) "Logged $habitTitle." else "Open Kinetiq to log $habitTitle manually."
+                            if (ok) "Logged $habitTitle." else "Open Routines to log $habitTitle manually."
                         )
                         pending.finish()
                     }
