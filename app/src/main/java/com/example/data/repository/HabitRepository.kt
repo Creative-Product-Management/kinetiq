@@ -59,7 +59,36 @@ class HabitRepository(
     }
 
     suspend fun saveCategory(category: Category): Long = categoryDao.insertCategory(category)
+    suspend fun updateCategory(category: Category) = categoryDao.updateCategory(category)
+    suspend fun deleteCategory(category: Category) = categoryDao.deleteCategory(category)
+    suspend fun countHabitsWithCategory(categoryId: Long): Int = habitDao.countHabitsWithCategory(categoryId)
+
     suspend fun saveStack(stack: RoutineStackEntity): Long = habitDao.insertStack(stack)
+    suspend fun updateStack(stack: RoutineStackEntity) = habitDao.updateStack(stack)
+    suspend fun deleteStack(stack: RoutineStackEntity) = habitDao.deleteStack(stack)
+    suspend fun countHabitsWithStack(stackId: Long): Int = habitDao.countHabitsWithStack(stackId)
+
+    /** Persists category order from a manage-screen reorder. */
+    suspend fun reorderCategories(ordered: List<Category>) {
+        database.withTransaction {
+            ordered.forEachIndexed { index, cat ->
+                if (cat.orderIndex != index) categoryDao.updateCategory(cat.copy(orderIndex = index))
+            }
+        }
+    }
+
+    /**
+     * Inserts built-in categories/stacks only when those tables are empty.
+     * Caller should gate with the DataStore seed flag so a deliberate wipe is not undone.
+     */
+    suspend fun seedDefaultLibraryIfEmpty() = database.withTransaction {
+        if (categoryDao.getCategoryCount() == 0) {
+            LibraryDefaults.categories.forEach { categoryDao.insertCategory(it) }
+        }
+        if (habitDao.getStackCount() == 0) {
+            LibraryDefaults.stacks.forEach { habitDao.insertStack(it) }
+        }
+    }
 
     /** Replace all domain data atomically (used by backup import). */
     suspend fun replaceAllData(

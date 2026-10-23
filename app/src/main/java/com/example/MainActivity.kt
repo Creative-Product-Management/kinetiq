@@ -22,12 +22,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.ui.screens.AboutScreen
+import com.example.ui.screens.CategoryManageScreen
 import com.example.ui.screens.FaqScreen
 import com.example.ui.screens.HabitDetailAnalyticsScreen
 import com.example.ui.screens.HabitEditorSheet
 import com.example.ui.screens.HabitSortScreen
 import com.example.ui.screens.KineticDashboardScreen
 import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.StackManageScreen
 import com.example.ui.theme.KineticRoutinesTheme
 import com.example.ui.viewmodel.KineticViewModel
 
@@ -129,11 +131,24 @@ class MainActivity : ComponentActivity() {
                                 onArchive = { toArchive -> viewModel.archiveHabit(toArchive); navController.popBackStack("dashboard", inclusive = false) },
                                 categories = categories,
                                 stacks = stacks,
-                                defaultFloorPercent = floorPct
+                                defaultFloorPercent = floorPct,
+                                onManageCategories = { navController.navigate("settings/categories") },
+                                onManageStacks = { navController.navigate("settings/stacks") }
                             )
                         }
                         composable("settings") {
-                            SettingsScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                            SettingsScreen(
+                                viewModel = viewModel,
+                                onBack = { navController.popBackStack() },
+                                onOpenCategories = { navController.navigate("settings/categories") },
+                                onOpenStacks = { navController.navigate("settings/stacks") }
+                            )
+                        }
+                        composable("settings/categories") {
+                            CategoryManageScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
+                        }
+                        composable("settings/stacks") {
+                            StackManageScreen(viewModel = viewModel, onBack = { navController.popBackStack() })
                         }
                     }
                 }
