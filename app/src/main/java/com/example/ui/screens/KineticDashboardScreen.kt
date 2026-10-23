@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -35,11 +36,11 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.filled.TableRows
 import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material.icons.filled.SwapVert
-import androidx.compose.material.icons.filled.ViewStream
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -80,16 +81,19 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.model.HabitEntity
+import com.example.data.repository.HabitListLayout
 import com.example.ui.components.ActiveTimerDialog
 import com.example.ui.components.HabitActivityChart
 import com.example.ui.components.HabitCard
+import com.example.ui.components.HabitTableDateHeader
+import com.example.ui.components.HabitTableRow
 import com.example.ui.components.InAppNudgeStrip
 import com.example.ui.components.NotificationSettingsDialog
 import com.example.ui.components.QuickLogDialog
 import com.example.ui.theme.Fraunces
 import com.example.ui.viewmodel.KineticViewModel
 import com.example.ui.viewmodel.sortHabitCards
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun KineticDashboardScreen(
     viewModel: KineticViewModel,
@@ -116,7 +120,9 @@ fun KineticDashboardScreen(
     val showHeroSection by viewModel.showHeroSection.collectAsStateWithLifecycle()
     val showActivityChart by viewModel.showActivityChart.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val habitListLayout by viewModel.habitListLayout.collectAsStateWithLifecycle()
     val lastArchived by viewModel.lastArchived.collectAsStateWithLifecycle()
+    val isTableLayout = habitListLayout == HabitListLayout.TABLE
 
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(lastArchived) {
@@ -150,7 +156,15 @@ fun KineticDashboardScreen(
                 actions = {
                     Box {
                         IconButton(onClick = { viewMenuExpanded = true }, modifier = Modifier.testTag("toggle_stack_view_btn")) {
-                            Icon(imageVector = if (isStackView) Icons.Default.ViewStream else Icons.AutoMirrored.Filled.ViewList, contentDescription = "View and sort options", tint = if (isStackView) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(
+                                imageVector = when {
+                                    isTableLayout -> Icons.Default.TableRows
+                                    isStackView -> Icons.Default.ViewStream
+                                    else -> Icons.AutoMirrored.Filled.ViewList
+                                },
+                                contentDescription = "View and sort options",
+                                tint = if (isTableLayout || isStackView) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                         DropdownMenu(expanded = viewMenuExpanded, onDismissRequest = { viewMenuExpanded = false }) {
                             DropdownMenuItem(
@@ -158,6 +172,18 @@ fun KineticDashboardScreen(
                                 leadingIcon = { Icon(if (isStackView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.ViewStream, contentDescription = null, modifier = Modifier.size(18.dp)) },
                                 onClick = { viewMenuExpanded = false; viewModel.toggleStackView() },
                                 modifier = Modifier.testTag("view_mode_option")
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (isTableLayout) "Card Layout" else "Table Layout") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (isTableLayout) Icons.Default.Widgets else Icons.Default.TableRows,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                onClick = { viewMenuExpanded = false; viewModel.toggleHabitListLayout() },
+                                modifier = Modifier.testTag("habit_list_layout_option")
                             )
                             DropdownMenuItem(
                                 text = { Text("Sort") },
@@ -266,6 +292,50 @@ fun KineticDashboardScreen(
                                 Text(text = "Tap + to create a habit or switch filter", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
+                    }
+                }
+            } else if (isTableLayout) {
+                stickyHeader(key = "habit_table_dates") {
+                    HabitTableDateHeader(days = filteredCards.first().recentDays)
+                }
+                if (isStackView) {
+                    val grouped = filteredCards.groupBy { it.habit.routineStackId }
+                    grouped.forEach { (stackId, stackCards) ->
+                        val stack = stacks.firstOrNull { it.id == stackId }
+                        item(key = "stack_header_${stackId ?: 0}") {
+                            Row(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = (stack?.name ?: "Independent Habits").uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = MaterialTheme.colorScheme.secondary)
+                            }
+                        }
+                        items(stackCards, key = { it.habit.id }) { card ->
+                            HabitTableRow(
+                                habit = card.habit,
+                                recentDays = card.recentDays,
+                                momentumPercent = card.momentumPercent,
+                                onRowClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
+                                onDayClick = { viewModel.handleDayClick(card.habit, it) },
+                                onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
+                                onEditClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
+                                onArchiveClick = { viewModel.archiveHabit(card.habit) },
+                                onDeleteClick = { habitToDelete = card.habit }
+                            )
+                        }
+                    }
+                } else {
+                    items(filteredCards, key = { it.habit.id }) { card ->
+                        HabitTableRow(
+                            habit = card.habit,
+                            recentDays = card.recentDays,
+                            momentumPercent = card.momentumPercent,
+                            onRowClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
+                            onDayClick = { viewModel.handleDayClick(card.habit, it) },
+                            onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
+                            onEditClick = { viewModel.openEditHabitEditor(card.habit); onOpenEditor(card.habit.id) },
+                            onArchiveClick = { viewModel.archiveHabit(card.habit) },
+                            onDeleteClick = { habitToDelete = card.habit }
+                        )
                     }
                 }
             } else if (isStackView) {

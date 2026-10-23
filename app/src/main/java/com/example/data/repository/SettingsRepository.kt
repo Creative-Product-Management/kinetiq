@@ -39,6 +39,24 @@ enum class HabitSortMode {
     }
 }
 
+/** Home habit list presentation: card chrome vs compact shared-date table. */
+enum class HabitListLayout {
+    CARD,
+    TABLE;
+
+    fun toggled(): HabitListLayout = when (this) {
+        CARD -> TABLE
+        TABLE -> CARD
+    }
+
+    companion object {
+        fun fromStored(raw: String?): HabitListLayout = when (raw) {
+            TABLE.name -> TABLE
+            else -> CARD
+        }
+    }
+}
+
 data class KineticSettings(
     val themeMode: ThemeMode = ThemeMode.DARK,
     val weekStartsOnMonday: Boolean = true,
@@ -52,7 +70,9 @@ data class KineticSettings(
     val showActivityChart: Boolean = true,
     val dismissedNudgeIds: Set<String> = emptySet(),
     /** Home ordering: manual drag order, or dynamic Momentum (highest/lowest first). */
-    val sortMode: HabitSortMode = HabitSortMode.MANUAL
+    val sortMode: HabitSortMode = HabitSortMode.MANUAL,
+    /** Home habit list: Card (default) or compact Table with a shared sticky date header. */
+    val habitListLayout: HabitListLayout = HabitListLayout.CARD
 )
 
 class SettingsRepository(context: Context) {
@@ -69,7 +89,8 @@ class SettingsRepository(context: Context) {
             showHeroSection = p[SHOW_HERO] ?: true,
             showActivityChart = p[SHOW_ACTIVITY_CHART] ?: true,
             dismissedNudgeIds = p[DISMISSED_NUDGES] ?: emptySet(),
-            sortMode = HabitSortMode.fromStored(p[SORT_MODE])
+            sortMode = HabitSortMode.fromStored(p[SORT_MODE]),
+            habitListLayout = HabitListLayout.fromStored(p[HABIT_LIST_LAYOUT])
         )
     }
 
@@ -83,6 +104,7 @@ class SettingsRepository(context: Context) {
     suspend fun setShowHeroSection(v: Boolean) = store.edit { it[SHOW_HERO] = v }
     suspend fun setShowActivityChart(v: Boolean) = store.edit { it[SHOW_ACTIVITY_CHART] = v }
     suspend fun setSortMode(mode: HabitSortMode) = store.edit { it[SORT_MODE] = mode.name }
+    suspend fun setHabitListLayout(layout: HabitListLayout) = store.edit { it[HABIT_LIST_LAYOUT] = layout.name }
     suspend fun clearDismissedNudges() = store.edit { it.remove(DISMISSED_NUDGES) }
 
     companion object {
@@ -96,5 +118,6 @@ class SettingsRepository(context: Context) {
         private val SHOW_HERO = booleanPreferencesKey("show_hero_section")
         private val SHOW_ACTIVITY_CHART = booleanPreferencesKey("show_activity_chart")
         private val SORT_MODE = stringPreferencesKey("habit_sort_mode")
+        private val HABIT_LIST_LAYOUT = stringPreferencesKey("habit_list_layout")
     }
 }

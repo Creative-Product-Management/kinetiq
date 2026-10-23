@@ -8,6 +8,7 @@ import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
 import com.example.data.model.RoutineStackEntity
+import com.example.data.repository.HabitListLayout
 import com.example.data.repository.HabitRepository
 import com.example.data.repository.HabitSortMode
 import com.example.data.repository.KineticSettings
@@ -204,8 +205,12 @@ class KineticViewModel(
     /** Permanent Home activity chart preference. Defaults to visible; Settings or dismiss hide it. */
     val showActivityChart: StateFlow<Boolean> = settings.map { it.showActivityChart }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val sortMode: StateFlow<HabitSortMode> = settings.map { it.sortMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSortMode.MANUAL)
+    val habitListLayout: StateFlow<HabitListLayout> = settings.map { it.habitListLayout }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitListLayout.CARD)
 
     fun setSortMode(mode: HabitSortMode) { viewModelScope.launch { settingsRepository.setSortMode(mode) } }
+    fun setHabitListLayout(layout: HabitListLayout) { viewModelScope.launch { settingsRepository.setHabitListLayout(layout) } }
+    fun toggleHabitListLayout() { setHabitListLayout(habitListLayout.value.toggled()) }
 
     /** Momentum chip tap: selects highest-first from Manual, then flips direction on each re-tap. */
     fun selectMomentumSort() { setSortMode(sortMode.value.nextMomentum()) }
@@ -271,7 +276,7 @@ class KineticViewModel(
             )
             HabitCardUi(
                 habit, catNames[habit.categoryId] ?: "General",
-                buildRecent7Days(habit.id, habitRecords, s.weekStartsOnMonday),
+                buildRecentDays(habit.id, habitRecords, s.weekStartsOnMonday, days = CARD_DAY_STRIP_DAYS),
                 // Prefer the history's last point so the badge matches the Home line.
                 momentumPercent = history.lastOrNull()?.roundToInt()?.coerceIn(0, 100)
                     ?: HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumLogs, restShieldEnabled = s.restShieldEnabled),
@@ -459,16 +464,21 @@ class KineticViewModel(
     suspend fun exportBackup(passphrase: CharArray): ByteArray = container.backupManager.exportEncrypted(passphrase)
     suspend fun importBackup(bytes: ByteArray, passphrase: CharArray) { container.backupManager.importEncrypted(bytes, passphrase); analyticsCache.clear() }
 
-    /** Generalised strip builder ending today; [buildRecent7Days] is the 7-day case. */
-    fun buildRecentDays(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true, days: Int = 7): List<DayStripItem> =
+    /** Generalised strip builder ending today; habit cards use [CARD_DAY_STRIP_DAYS]. */
+    fun buildRecentDays(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true, days: Int = CARD_DAY_STRIP_DAYS): List<DayStripItem> =
         buildDayStrip(habitRecords, SystemKineticClock.today(), days)
 
     fun buildRecent7Days(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true): List<DayStripItem> =
-        buildRecentDays(habitId, habitRecords, weekStartsOnMonday, days = 7)
+        buildRecentDays(habitId, habitRecords, weekStartsOnMonday, days = CARD_DAY_STRIP_DAYS)
 
     /** Legacy helper kept for tests/call sites; prefer [habitCards]. */
     fun getRecent7Days(habitId: Long, records: List<HabitRecordEntity>): List<DayStripItem> =
         buildRecent7Days(habitId, records.filter { it.habitId == habitId })
+
+    companion object {
+        /** Days shown on each habit card's quick-log strip (ends today). */
+        const val CARD_DAY_STRIP_DAYS = 9
+    }
 
     class Factory(private val container: AppContainer) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

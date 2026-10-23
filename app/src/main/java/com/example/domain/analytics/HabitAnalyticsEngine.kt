@@ -39,7 +39,7 @@ object HabitAnalyticsEngine {
     /**
      * First day analytics may count: the habit's creation date, or its
      * earliest log if the user backfilled days from before the habit was
-     * created in the app (the home day-strip offers the past 7 days).
+     * created in the app (the home day-strip offers the past several days).
      * Days before this are never counted — and never penalised either,
      * since the EMA starts at 0 and missed days keep it at 0.
      */
