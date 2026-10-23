@@ -49,8 +49,27 @@ data class HabitCardUi(
     val habit: HabitEntity,
     val categoryName: String,
     val recentDays: List<DayStripItem>,
-    val momentumPercent: Int = 0
+    val momentumPercent: Int = 0,
+    /** Last 30 days (ends today) for the Home activity chart; the chart shows as many as fit on screen. */
+    val activityDays: List<DayStripItem> = emptyList()
 )
+
+/** Pure day-strip builder: [days] entries ending at [today], oldest first. */
+fun buildDayStrip(habitRecords: List<HabitRecordEntity>, today: LocalDate, days: Int): List<DayStripItem> {
+    require(days > 0) { "days must be positive" }
+    val recordMap = habitRecords.associateBy { it.dateString }
+    return ((days - 1) downTo 0).map { offset ->
+        val date = today.minusDays(offset.toLong())
+        DayStripItem(
+            dateString = DateCodec.format(date),
+            dayLetter = date.dayOfWeek.name.take(1),
+            dayNumber = date.dayOfMonth.toString(),
+            isToday = offset == 0,
+            dayOfWeekIso = date.dayOfWeek.value,
+            record = recordMap[DateCodec.format(date)]
+        )
+    }
+}
 
 /**
  * MANUAL keeps the saved home order. Momentum modes auto-sort by score;
@@ -175,6 +194,8 @@ class KineticViewModel(
     val dailyEveningDigestHour: StateFlow<Int> = settings.map { it.dailyEveningDigestHour }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 21)
     /** Permanent dashboard hero preference. Defaults to visible; Settings can hide it for good. */
     val showHeroSection: StateFlow<Boolean> = settings.map { it.showHeroSection }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    /** Permanent Home activity chart preference. Defaults to visible; Settings or dismiss hide it. */
+    val showActivityChart: StateFlow<Boolean> = settings.map { it.showActivityChart }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
     val sortMode: StateFlow<HabitSortMode> = settings.map { it.sortMode }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HabitSortMode.MANUAL)
 
     fun setSortMode(mode: HabitSortMode) { viewModelScope.launch { settingsRepository.setSortMode(mode) } }
@@ -236,10 +257,14 @@ class KineticViewModel(
         val byHabit = records.groupBy { it.habitId }
         val momentumByHabit = momentum.groupBy { it.habitId }
         habits.map { habit ->
+            val habitRecords = byHabit[habit.id].orEmpty()
             HabitCardUi(
                 habit, catNames[habit.categoryId] ?: "General",
-                buildRecent7Days(habit.id, byHabit[habit.id].orEmpty(), s.weekStartsOnMonday),
-                HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumByHabit[habit.id].orEmpty(), restShieldEnabled = s.restShieldEnabled)
+                buildRecent7Days(habit.id, habitRecords, s.weekStartsOnMonday),
+                HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumByHabit[habit.id].orEmpty(), restShieldEnabled = s.restShieldEnabled),
+                // Activity chart can show up to 30 days; source from the wider
+                // momentum window (the dashboard window is only 14 days).
+                activityDays = buildRecentDays(habit.id, momentumByHabit[habit.id].orEmpty(), days = 30)
             )
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -320,6 +345,10 @@ class KineticViewModel(
             // Re-enabling the hero starts fresh so it actually reappears at once.
             if (visible) settingsRepository.clearDismissedNudges()
         }
+    }
+
+    fun setShowActivityChart(visible: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowActivityChart(visible) }
     }
 
     fun handleNudgeAction(nudge: InAppNudgeData) {
@@ -416,22 +445,12 @@ class KineticViewModel(
     suspend fun exportBackup(passphrase: CharArray): ByteArray = container.backupManager.exportEncrypted(passphrase)
     suspend fun importBackup(bytes: ByteArray, passphrase: CharArray) { container.backupManager.importEncrypted(bytes, passphrase); analyticsCache.clear() }
 
-    fun buildRecent7Days(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true): List<DayStripItem> {
-        val recordMap = habitRecords.associateBy { it.dateString }
-        val today: LocalDate = SystemKineticClock.today()
-        // Anchor the strip so it ends today; weekday letters come from the actual date.
-        return (6 downTo 0).map { offset ->
-            val date = today.minusDays(offset.toLong())
-            DayStripItem(
-                dateString = DateCodec.format(date),
-                dayLetter = date.dayOfWeek.name.take(1),
-                dayNumber = date.dayOfMonth.toString(),
-                isToday = offset == 0,
-                dayOfWeekIso = date.dayOfWeek.value,
-                record = recordMap[DateCodec.format(date)]
-            )
-        }
-    }
+    /** Generalised strip builder ending today; [buildRecent7Days] is the 7-day case. */
+    fun buildRecentDays(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true, days: Int = 7): List<DayStripItem> =
+        buildDayStrip(habitRecords, SystemKineticClock.today(), days)
+
+    fun buildRecent7Days(habitId: Long, habitRecords: List<HabitRecordEntity>, weekStartsOnMonday: Boolean = true): List<DayStripItem> =
+        buildRecentDays(habitId, habitRecords, weekStartsOnMonday, days = 7)
 
     /** Legacy helper kept for tests/call sites; prefer [habitCards]. */
     fun getRecent7Days(habitId: Long, records: List<HabitRecordEntity>): List<DayStripItem> =

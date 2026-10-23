@@ -71,21 +71,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.R
 import com.example.data.model.HabitEntity
 import com.example.ui.components.ActiveTimerDialog
+import com.example.ui.components.HabitActivityChart
 import com.example.ui.components.HabitCard
-import com.example.ui.components.InAppNudgeHero
+import com.example.ui.components.InAppNudgeStrip
 import com.example.ui.components.NotificationSettingsDialog
 import com.example.ui.components.QuickLogDialog
 import com.example.ui.theme.Fraunces
 import com.example.ui.viewmodel.KineticViewModel
 import com.example.ui.viewmodel.sortHabitCards
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KineticDashboardScreen(
@@ -111,6 +114,7 @@ fun KineticDashboardScreen(
     val quickLogTarget by viewModel.quickLogTarget.collectAsStateWithLifecycle()
     val inAppNudges by viewModel.inAppNudges.collectAsStateWithLifecycle()
     val showHeroSection by viewModel.showHeroSection.collectAsStateWithLifecycle()
+    val showActivityChart by viewModel.showActivityChart.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val lastArchived by viewModel.lastArchived.collectAsStateWithLifecycle()
 
@@ -216,10 +220,19 @@ fun KineticDashboardScreen(
         ) {
             if (showHeroSection && inAppNudges.isNotEmpty()) {
                 item {
-                    InAppNudgeHero(
+                    InAppNudgeStrip(
                         nudges = inAppNudges,
                         onActionClick = { nudge -> viewModel.handleNudgeAction(nudge); nudge.targetHabitId?.let(onOpenHabitDetail) },
                         onDismiss = { id -> viewModel.dismissNudge(id) }
+                    )
+                }
+            }
+
+            if (showActivityChart && filteredCards.isNotEmpty()) {
+                item {
+                    HabitActivityChart(
+                        rows = filteredCards,
+                        onDismiss = { viewModel.setShowActivityChart(false) }
                     )
                 }
             }
@@ -268,7 +281,7 @@ fun KineticDashboardScreen(
                     }
                     items(stackCards, key = { it.habit.id }) { card ->
                         HabitCard(
-                            habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
+                            habit = card.habit, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
                             onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                             onDayClick = { viewModel.handleDayClick(card.habit, it) },
                             onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
@@ -281,7 +294,7 @@ fun KineticDashboardScreen(
             } else {
                 items(filteredCards, key = { it.habit.id }) { card ->
                     HabitCard(
-                        habit = card.habit, categoryName = card.categoryName, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
+                        habit = card.habit, recentDays = card.recentDays, momentumPercent = card.momentumPercent,
                         onCardClick = { viewModel.openHabitDetail(card.habit); onOpenHabitDetail(card.habit.id) },
                         onDayClick = { viewModel.handleDayClick(card.habit, it) },
                         onDayLongClick = { viewModel.openQuickLog(card.habit, it) },
@@ -350,7 +363,20 @@ private fun CategoryChip(label: String, count: Int, isSelected: Boolean, onClick
             Text(text = label, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.width(6.dp))
             Box(modifier = Modifier.size(18.dp).clip(CircleShape).background(if (isSelected) Color.Black.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
-                Text(text = "$count", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+                // Tight line metrics + no font padding so the digit sits
+                // optically centred in the small circle (default font
+                // padding/line height pushed it off-centre).
+                Text(
+                    text = "$count",
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = LocalTextStyle.current.copy(
+                        fontSize = 10.sp,
+                        lineHeight = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
+                )
             }
         }
     }

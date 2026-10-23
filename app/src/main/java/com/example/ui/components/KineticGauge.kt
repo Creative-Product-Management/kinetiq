@@ -102,7 +102,7 @@ fun KineticGauge(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = "KINETIC MOMENTUM",
+                text = "Momentum",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,

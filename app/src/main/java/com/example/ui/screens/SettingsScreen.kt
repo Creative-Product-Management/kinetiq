@@ -92,6 +92,7 @@ fun SettingsScreen(
     val dailyEveningDigestEnabled by viewModel.dailyEveningDigestEnabled.collectAsStateWithLifecycle()
     val dailyEveningDigestHour by viewModel.dailyEveningDigestHour.collectAsStateWithLifecycle()
     val showHeroSection by viewModel.showHeroSection.collectAsStateWithLifecycle()
+    val showActivityChart by viewModel.showActivityChart.collectAsStateWithLifecycle()
     val archivedHabits by viewModel.archivedHabits.collectAsStateWithLifecycle()
 
     var showResetDialog by remember { mutableStateOf(false) }
@@ -166,6 +167,14 @@ fun SettingsScreen(
                     checked = showHeroSection,
                     onCheckedChange = { viewModel.setShowHeroSection(it) },
                     testTag = "hero_section_toggle"
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    title = "Activity Chart",
+                    subtitle = "Habits × dates overview on Home",
+                    checked = showActivityChart,
+                    onCheckedChange = { viewModel.setShowActivityChart(it) },
+                    testTag = "activity_chart_toggle"
                 )
             }
 

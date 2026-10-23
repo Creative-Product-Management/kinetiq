@@ -32,10 +32,10 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -87,7 +88,6 @@ fun HabitCard(
     onArchiveClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    categoryName: String = "General",
     momentumPercent: Int = 0
 ) {
     val habitColor = remember(habit.colorHex) { parseHabitColor(habit.colorHex) }
@@ -310,7 +310,13 @@ fun HabitCard(
                                     text = if (habit.modality == HabitModality.TALLY) "${item.record.tallyCount}" else "${item.record.numericValue.toInt()}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = habitColor
+                                    color = habitColor,
+                                    // Centre the digit optically in the circle (see CategoryChip).
+                                    style = LocalTextStyle.current.copy(
+                                        lineHeight = 11.sp,
+                                        textAlign = TextAlign.Center,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                    )
                                 )
                             }
                             else -> {
@@ -322,52 +328,5 @@ fun HabitCard(
             }
         }
 
-        // Footer: Category (left) · Cue or Target/Floor (right)
-        Spacer(modifier = Modifier.height(12.dp))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().testTag("habit_card_footer_${habit.id}"),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 6.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = categoryName,
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            val footerRight = if (habit.cueTrigger.isNotBlank()) {
-                "⚡ ${habit.cueTrigger}"
-            } else {
-                val targetText = when (habit.modality) {
-                    HabitModality.YES_NO -> "Daily Target"
-                    else -> "Target ${formatHabitValue(habit.targetValue)} ${habit.unit}".trim()
-                }
-                val floorText = if (habit.floorValue != null && habit.floorValue > 0) {
-                    " · Floor ${formatHabitValue(habit.floorValue)} ${habit.unit}".trimEnd()
-                } else ""
-                targetText + floorText
-            }
-            Text(
-                text = footerRight,
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.End,
-                modifier = Modifier.weight(1f)
-            )
-        }
     }
 }
-
-private fun formatHabitValue(value: Double): String =
-    if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString()
