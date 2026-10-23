@@ -9,20 +9,24 @@ import com.example.data.model.Habit
 import com.example.data.model.HabitModality
 import com.example.data.repository.HabitRepository
 import com.example.data.repository.LibraryDefaults
+import com.example.data.repository.LogRepository
 import com.example.data.repository.SettingsRepository
 import com.example.domain.EditorKind
 import com.example.domain.MeasurableLogStyle
 import com.example.domain.resolveEditorModality
 import com.example.domain.toEditorKind
+import com.example.domain.time.FixedKineticClock
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -116,6 +120,30 @@ class LibraryAndEditorModalityTest {
 
         assertNull(habitRepo.getHabitById(habitId)?.categoryId)
         assertTrue(habitRepo.snapshotCategories().isEmpty())
+        db.close()
+    }
+
+    @Test
+    fun `updating habit color does not clear logs`() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val db = newDb(context)
+        val habitRepo = HabitRepository(db, db.habitDao(), db.logEntryDao(), db.categoryDao())
+        val logRepo = LogRepository(db, db.logEntryDao(), FixedKineticClock(LocalDate.of(2026, 10, 21)))
+
+        val habitId = habitRepo.saveHabit(
+            Habit(title = "Water", modality = HabitModality.YES_NO, targetValue = 1.0, colorHex = "#10B981")
+        )
+        val habit = habitRepo.getHabitById(habitId)!!
+        logRepo.toggleHabitForDate(habit, "2026-10-21")
+        logRepo.toggleHabitForDate(habit, "2026-10-20")
+        assertEquals(2, habitRepo.snapshotLogs().count { it.habitId == habitId })
+
+        habitRepo.saveHabit(habit.copy(colorHex = "#F43F5E", title = "Water intake"))
+        val updated = habitRepo.getHabitById(habitId)!!
+        assertEquals("#F43F5E", updated.colorHex)
+        assertEquals("Water intake", updated.title)
+        assertEquals(2, habitRepo.snapshotLogs().count { it.habitId == habitId })
+        assertNotNull(logRepo.getRecord(habitId, "2026-10-21"))
         db.close()
     }
 }

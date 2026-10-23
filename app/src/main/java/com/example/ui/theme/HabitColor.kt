@@ -2,23 +2,30 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** Darker, desaturated presets for habit accents. */
+/**
+ * Popular habit accent presets (bright, saturated — not muted).
+ * Stored on the habit as `#RRGGBB` and shown on cards / activity chrome only.
+ */
 val HABIT_COLOR_PRESETS: List<String> = listOf(
-    "#2F6F5E", // deep teal
-    "#4A5568", // slate
-    "#3D4F6F", // slate blue
-    "#6B4E31", // olive brown
-    "#4A5D4E", // charcoal green
-    "#6B3F5A", // burgundy mauve
-    "#3F5A6B", // steel
-    "#5A5346", // warm charcoal
-    "#4A3D6B", // muted violet
-    "#6B5A3D", // khaki
-    "#3D4A6B", // evening blue
-    "#5A3D3D"  // dusty maroon
+    "#10B981", // emerald
+    "#14B8A6", // teal
+    "#06B6D4", // cyan
+    "#0EA5E9", // sky
+    "#3B82F6", // blue
+    "#6366F1", // indigo
+    "#8B5CF6", // violet
+    "#A855F7", // purple
+    "#EC4899", // pink
+    "#F43F5E", // rose
+    "#EF4444", // red
+    "#F97316", // orange
+    "#F59E0B", // amber
+    "#EAB308", // yellow
+    "#84CC16", // lime
+    "#22C55E"  // green
 )
 
-const val DEFAULT_HABIT_COLOR_HEX = "#2F6F5E"
+const val DEFAULT_HABIT_COLOR_HEX = "#10B981"
 
 /** Single hex -> Color parser for habit accent colors. */
 fun parseHabitColor(hex: String, fallback: Color = KineticEmerald): Color =
