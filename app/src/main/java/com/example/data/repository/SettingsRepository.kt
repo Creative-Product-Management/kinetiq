@@ -48,6 +48,8 @@ data class KineticSettings(
     val dailyEveningDigestHour: Int = 21,
     /** Permanent user preference for the dashboard hero. When false the hero never renders. */
     val showHeroSection: Boolean = true,
+    /** Permanent user preference for the Home activity chart. When false the chart never renders. */
+    val showActivityChart: Boolean = true,
     val dismissedNudgeIds: Set<String> = emptySet(),
     /** Home ordering: manual drag order, or dynamic Momentum (highest/lowest first). */
     val sortMode: HabitSortMode = HabitSortMode.MANUAL
@@ -65,6 +67,7 @@ class SettingsRepository(context: Context) {
             dailyEveningDigestEnabled = p[DIGEST_ENABLED] ?: true,
             dailyEveningDigestHour = p[DIGEST_HOUR] ?: 21,
             showHeroSection = p[SHOW_HERO] ?: true,
+            showActivityChart = p[SHOW_ACTIVITY_CHART] ?: true,
             dismissedNudgeIds = p[DISMISSED_NUDGES] ?: emptySet(),
             sortMode = HabitSortMode.fromStored(p[SORT_MODE])
         )
@@ -78,6 +81,7 @@ class SettingsRepository(context: Context) {
     suspend fun setDailyEveningDigestHour(v: Int) = store.edit { it[DIGEST_HOUR] = v.coerceIn(0, 23) }
     suspend fun dismissNudge(id: String) = store.edit { it[DISMISSED_NUDGES] = (it[DISMISSED_NUDGES] ?: emptySet()) + id }
     suspend fun setShowHeroSection(v: Boolean) = store.edit { it[SHOW_HERO] = v }
+    suspend fun setShowActivityChart(v: Boolean) = store.edit { it[SHOW_ACTIVITY_CHART] = v }
     suspend fun setSortMode(mode: HabitSortMode) = store.edit { it[SORT_MODE] = mode.name }
     suspend fun clearDismissedNudges() = store.edit { it.remove(DISMISSED_NUDGES) }
 
@@ -90,6 +94,7 @@ class SettingsRepository(context: Context) {
         private val DIGEST_HOUR = intPreferencesKey("digest_hour")
         private val DISMISSED_NUDGES = stringSetPreferencesKey("dismissed_nudges")
         private val SHOW_HERO = booleanPreferencesKey("show_hero_section")
+        private val SHOW_ACTIVITY_CHART = booleanPreferencesKey("show_activity_chart")
         private val SORT_MODE = stringPreferencesKey("habit_sort_mode")
     }
 }

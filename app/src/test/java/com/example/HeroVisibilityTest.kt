@@ -5,7 +5,7 @@ import com.example.data.model.LogEntry
 import com.example.data.repository.KineticSettings
 import androidx.compose.ui.unit.dp
 import com.example.ui.components.HERO_AUTO_ADVANCE_DELAY_MILLIS
-import com.example.ui.components.HERO_SLIDE_HEIGHT
+import com.example.ui.components.HERO_STRIP_HEIGHT
 import com.example.ui.components.NudgeType
 import com.example.ui.components.nextHeroPage
 import com.example.ui.viewmodel.buildInAppNudges
@@ -22,6 +22,11 @@ class HeroVisibilityTest {
     @Test fun `hero is shown by default and can be permanently hidden via settings`() {
         assertTrue(KineticSettings().showHeroSection)
         assertFalse(KineticSettings(showHeroSection = false).showHeroSection)
+    }
+
+    @Test fun `activity chart is shown by default and can be permanently hidden via settings`() {
+        assertTrue(KineticSettings().showActivityChart)
+        assertFalse(KineticSettings(showActivityChart = false).showActivityChart)
     }
 
     @Test fun `hero is always a slideshow with stable slides`() {
@@ -113,9 +118,9 @@ class HeroVisibilityTest {
         assertEquals(0, nextHeroPage(0, 1)) // single slide stays put
     }
 
-    @Test fun `every hero slide uses the same fixed height`() {
-        // Worst case (2-line title + 3-line subtitle + button + padding) needs ~242dp.
-        assertTrue(HERO_SLIDE_HEIGHT >= 240.dp)
-        assertEquals(244.dp, HERO_SLIDE_HEIGHT)
+    @Test fun `hero is a lean fixed-height strip`() {
+        // Slim banner below the app bar, not the old 244dp carousel card.
+        assertEquals(60.dp, HERO_STRIP_HEIGHT)
+        assertTrue(HERO_STRIP_HEIGHT < 100.dp)
     }
 }
