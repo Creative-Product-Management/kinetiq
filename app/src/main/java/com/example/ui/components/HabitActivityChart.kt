@@ -33,7 +33,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -63,11 +65,13 @@ const val ACTIVITY_MIN_STACK_ROWS = 5
 /** Minimum height the vertical ACTIVITY / MOMENTUM label needs. */
 val ACTIVITY_LABEL_MIN_HEIGHT = 96.dp
 
-/** Fixed plot height for the Momentum line graph (does not grow with habit count). */
-val MOMENTUM_PLOT_HEIGHT = ACTIVITY_LABEL_MIN_HEIGHT
-
 /** Stack height for a date column: one slot per habit, at least [ACTIVITY_MIN_STACK_ROWS]. */
 fun activityStackRows(habitCount: Int): Int = maxOf(ACTIVITY_MIN_STACK_ROWS, habitCount)
+
+/** Soft fill for the current-day column (plot + X-axis labels). */
+@Composable
+private fun todayColumnFill(): Color =
+    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
 
 enum class HomeChartMode { ACTIVITY, MOMENTUM }
 
@@ -204,8 +208,8 @@ fun HabitActivityChart(
     if (activityColumns.isEmpty()) return
     var mode by remember { mutableStateOf(HomeChartMode.ACTIVITY) }
     val stackRows = activityStackRows(rows.size)
-    val stackHeight = maxOf((ACTIVITY_CELL_SIZE + ACTIVITY_CELL_SPACING) * stackRows, ACTIVITY_LABEL_MIN_HEIGHT)
-    val plotHeight = if (mode == HomeChartMode.ACTIVITY) stackHeight else MOMENTUM_PLOT_HEIGHT
+    // Same plot height for Activity and Momentum so toggling never resizes the panel.
+    val plotHeight = maxOf((ACTIVITY_CELL_SIZE + ACTIVITY_CELL_SPACING) * stackRows, ACTIVITY_LABEL_MIN_HEIGHT)
     val headline = overallMomentumHeadline(momentumPoints)
     val accent = headline?.let { momentumAccentColor(it) } ?: KineticViolet
 
@@ -239,19 +243,24 @@ fun HabitActivityChart(
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                         modifier = Modifier.weight(1f).padding(start = 6.dp)
                     )
                     if (mode == HomeChartMode.MOMENTUM && headline != null) {
                         Text(
                             text = "$headline%",
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = accent,
                             modifier = Modifier
-                                .padding(end = 8.dp)
+                                .padding(end = 6.dp)
                                 .testTag("momentum_headline")
                         )
                     }
+                    ChartModeToggle(
+                        mode = mode,
+                        onModeChange = { mode = it }
+                    )
                     if (onDismiss != null) {
                         IconButton(
                             onClick = onDismiss,
@@ -267,29 +276,20 @@ fun HabitActivityChart(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-                ChartModeToggle(
-                    mode = mode,
-                    onModeChange = { mode = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row {
-                    VerticalAxisLabel(
-                        label = if (mode == HomeChartMode.ACTIVITY) "ACTIVITY" else "MOMENTUM",
-                        height = plotHeight
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-
-                    when (mode) {
-                        HomeChartMode.ACTIVITY -> ActivityStacksBody(
+                    if (mode == HomeChartMode.ACTIVITY) {
+                        VerticalAxisLabel(label = "ACTIVITY", height = plotHeight)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        ActivityStacksBody(
                             columns = visibleActivity,
-                            stackRows = stackRows
+                            stackRows = stackRows,
+                            plotHeight = plotHeight
                         )
-                        HomeChartMode.MOMENTUM -> MomentumLineBody(
+                    } else {
+                        // Momentum uses 0/50/100 tick labels as the Y-axis; no vertical word label.
+                        MomentumLineBody(
                             points = visibleMomentum,
                             accent = accent,
                             plotHeight = plotHeight
@@ -309,26 +309,23 @@ private fun ChartModeToggle(
 ) {
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
-            .padding(3.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+            .padding(1.dp)
             .testTag("chart_mode_toggle"),
-        horizontalArrangement = Arrangement.spacedBy(3.dp)
+        horizontalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         ChartModeChip(
             label = "Activity",
             selected = mode == HomeChartMode.ACTIVITY,
             onClick = { onModeChange(HomeChartMode.ACTIVITY) },
-            testTag = "chart_mode_activity",
-            modifier = Modifier.weight(1f)
+            testTag = "chart_mode_activity"
         )
         ChartModeChip(
             label = "Momentum",
             selected = mode == HomeChartMode.MOMENTUM,
             onClick = { onModeChange(HomeChartMode.MOMENTUM) },
-            testTag = "chart_mode_momentum",
-            modifier = Modifier.weight(1f)
+            testTag = "chart_mode_momentum"
         )
     }
 }
@@ -338,27 +335,30 @@ private fun ChartModeChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
-    testTag: String,
-    modifier: Modifier = Modifier
+    testTag: String
 ) {
     Text(
         text = label,
-        fontSize = 12.sp,
+        fontSize = 10.sp,
+        lineHeight = 10.sp,
         fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
         color = if (selected) {
-            MaterialTheme.colorScheme.onPrimary
+            MaterialTheme.colorScheme.onSurface
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
+        style = LocalTextStyle.current.copy(
+            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        ),
+        modifier = Modifier
+            .clip(RoundedCornerShape(5.dp))
             .then(
-                if (selected) Modifier.background(MaterialTheme.colorScheme.primary)
+                if (selected) Modifier.background(MaterialTheme.colorScheme.surface)
                 else Modifier
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .padding(horizontal = 7.dp, vertical = 4.dp)
             .testTag(testTag)
     )
 }
@@ -389,8 +389,10 @@ private fun VerticalAxisLabel(label: String, height: androidx.compose.ui.unit.Dp
 @Composable
 private fun ActivityStacksBody(
     columns: List<ActivityDayColumn>,
-    stackRows: Int
+    stackRows: Int,
+    plotHeight: androidx.compose.ui.unit.Dp
 ) {
+    val todayFill = todayColumnFill()
     Row(horizontalArrangement = Arrangement.spacedBy(ACTIVITY_CELL_SPACING)) {
         columns.forEach { column ->
             Column(
@@ -400,41 +402,54 @@ private fun ActivityStacksBody(
                     .then(
                         if (column.isToday) Modifier
                             .clip(RoundedCornerShape(6.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                            .background(todayFill)
                         else Modifier
                     )
-                    .padding(vertical = 2.dp)
                     .testTag("activity_day_${column.dateString}")
             ) {
-                for (level in (stackRows - 1) downTo 0) {
-                    val square = column.squares.getOrNull(level)
-                    if (square != null) {
-                        Box(
-                            modifier = Modifier
-                                .padding(bottom = ACTIVITY_CELL_SPACING)
-                                .size(ACTIVITY_CELL_SIZE)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(parseHabitColor(square.colorHex))
-                                .semantics {
-                                    contentDescription = "${square.habitTitle} ${column.dateString}: logged"
-                                }
-                                .testTag("activity_cell_${square.habitId}_${column.dateString}")
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .padding(bottom = ACTIVITY_CELL_SPACING)
-                                .size(ACTIVITY_CELL_SIZE)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color(0xFF1E2633))
-                                .semantics {
-                                    contentDescription = "${column.dateString}: no log"
-                                }
-                                .testTag("activity_placeholder_${column.dateString}_$level")
-                        )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom,
+                    modifier = Modifier
+                        .width(ACTIVITY_CELL_SIZE)
+                        .height(plotHeight)
+                        .padding(vertical = 2.dp)
+                ) {
+                    for (level in (stackRows - 1) downTo 0) {
+                        val square = column.squares.getOrNull(level)
+                        if (square != null) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(bottom = ACTIVITY_CELL_SPACING)
+                                    .size(ACTIVITY_CELL_SIZE)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(parseHabitColor(square.colorHex))
+                                    .semantics {
+                                        contentDescription = "${square.habitTitle} ${column.dateString}: logged"
+                                    }
+                                    .testTag("activity_cell_${square.habitId}_${column.dateString}")
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .padding(bottom = ACTIVITY_CELL_SPACING)
+                                    .size(ACTIVITY_CELL_SIZE)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(Color(0xFF1E2633))
+                                    .semantics {
+                                        contentDescription = "${column.dateString}: no log"
+                                    }
+                                    .testTag("activity_placeholder_${column.dateString}_$level")
+                            )
+                        }
                     }
                 }
-                DayAxisLabels(dayLetter = column.dayLetter, dayNumber = column.dayNumber, isToday = column.isToday)
+                DayAxisLabels(
+                    dayLetter = column.dayLetter,
+                    dayNumber = column.dayNumber,
+                    isToday = column.isToday,
+                    shaded = false
+                )
             }
         }
     }
@@ -446,129 +461,130 @@ private fun MomentumLineBody(
     accent: Color,
     plotHeight: androidx.compose.ui.unit.Dp
 ) {
-    if (points.isEmpty()) return
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val todayBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-    Column {
-        Row(
-            modifier = Modifier.height(plotHeight),
-            verticalAlignment = Alignment.CenterVertically
+    val todayFill = todayColumnFill()
+    val barFill = accent.copy(alpha = 0.22f)
+    val chartWidth = if (points.isEmpty()) {
+        0.dp
+    } else {
+        (ACTIVITY_CELL_SIZE + ACTIVITY_CELL_SPACING) * points.size - ACTIVITY_CELL_SPACING
+    }
+    Row {
+        Column(
+            modifier = Modifier
+                .width(22.dp)
+                .height(plotHeight)
+                .padding(end = 4.dp),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
         ) {
-            // Y-axis tick labels (100 / 50 / 0)
-            Column(
+            listOf("100", "50", "0").forEach { tick ->
+                Text(
+                    text = tick,
+                    fontSize = 8.sp,
+                    lineHeight = 8.sp,
+                    color = axisColor,
+                    style = LocalTextStyle.current.copy(
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
+                )
+            }
+        }
+        Column(modifier = Modifier.width(chartWidth)) {
+            Canvas(
                 modifier = Modifier
-                    .width(22.dp)
-                    .fillMaxHeight()
-                    .padding(end = 4.dp),
-                verticalArrangement = Arrangement.SpaceBetween,
-                horizontalAlignment = Alignment.End
+                    .width(chartWidth)
+                    .height(plotHeight)
+                    .testTag("momentum_line_canvas")
             ) {
-                listOf("100", "50", "0").forEach { tick ->
-                    Text(
-                        text = tick,
-                        fontSize = 8.sp,
-                        lineHeight = 8.sp,
-                        color = axisColor,
-                        style = LocalTextStyle.current.copy(
-                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                val h = size.height
+                val cell = ACTIVITY_CELL_SIZE.toPx()
+                val gap = ACTIVITY_CELL_SPACING.toPx()
+                val stride = cell + gap
+                fun leftFor(i: Int): Float = i * stride
+                fun xFor(i: Int): Float = leftFor(i) + cell / 2f
+                fun yFor(value: Float): Float = h * (1f - (value.coerceIn(0f, 100f) / 100f))
+
+                val guide = Color(0xFF1E2633)
+                drawLine(guide, Offset(0f, yFor(100f)), Offset(size.width, yFor(100f)), strokeWidth = 1f)
+                drawLine(guide, Offset(0f, yFor(50f)), Offset(size.width, yFor(50f)), strokeWidth = 1f)
+                drawLine(guide, Offset(0f, yFor(0f)), Offset(size.width, yFor(0f)), strokeWidth = 1f)
+
+                // Faded bars: overall momentum for each day, under the line.
+                points.forEachIndexed { i, point ->
+                    val v = point.momentumPercent ?: return@forEachIndexed
+                    val inset = cell * 0.15f
+                    val barW = cell * 0.7f
+                    val top = yFor(v)
+                    val barH = (h - top).coerceAtLeast(0f)
+                    // Today: soft column only up to that day's momentum (not full 0–100).
+                    if (point.isToday && barH > 0f) {
+                        drawRoundRect(
+                            color = todayFill,
+                            topLeft = Offset(leftFor(i), top),
+                            size = Size(cell, barH),
+                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                         )
+                    }
+                    drawRoundRect(
+                        color = barFill,
+                        topLeft = Offset(leftFor(i) + inset, top),
+                        size = Size(barW, barH),
+                        cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                    )
+                }
+
+                var segment = Path()
+                var hasPoint = false
+                points.forEachIndexed { i, point ->
+                    val v = point.momentumPercent
+                    if (v == null) {
+                        if (hasPoint) {
+                            drawPath(
+                                path = segment,
+                                color = accent,
+                                style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                            )
+                            segment = Path()
+                            hasPoint = false
+                        }
+                    } else {
+                        val x = xFor(i)
+                        val y = yFor(v)
+                        if (!hasPoint) {
+                            segment.moveTo(x, y)
+                            hasPoint = true
+                        } else {
+                            segment.lineTo(x, y)
+                        }
+                    }
+                }
+                if (hasPoint) {
+                    drawPath(
+                        path = segment,
+                        color = accent,
+                        style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
+                    )
+                }
+                points.forEachIndexed { i, point ->
+                    val v = point.momentumPercent ?: return@forEachIndexed
+                    drawCircle(
+                        color = accent,
+                        radius = 3.dp.toPx(),
+                        center = Offset(xFor(i), yFor(v))
                     )
                 }
             }
-            val chartWidth = (ACTIVITY_CELL_SIZE + ACTIVITY_CELL_SPACING) * points.size - ACTIVITY_CELL_SPACING
-            Box(
-                modifier = Modifier
-                    .width(chartWidth)
-                    .fillMaxHeight()
-                    .testTag("momentum_line_canvas")
-            ) {
-                // Today highlight behind the line.
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.spacedBy(ACTIVITY_CELL_SPACING)
-                ) {
-                    points.forEach { point ->
-                        Box(
-                            modifier = Modifier
-                                .width(ACTIVITY_CELL_SIZE)
-                                .fillMaxHeight()
-                                .then(
-                                    if (point.isToday) Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(todayBg)
-                                    else Modifier
-                                )
-                        )
-                    }
-                }
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val w = size.width
-                    val h = size.height
-                    val n = points.size
-                    val colW = if (n > 0) w / n else w
-                    fun xFor(i: Int): Float = colW * i + colW / 2f
-                    fun yFor(value: Float): Float = h * (1f - (value.coerceIn(0f, 100f) / 100f))
-
-                    val guide = Color(0xFF1E2633)
-                    drawLine(guide, Offset(0f, yFor(100f)), Offset(w, yFor(100f)), strokeWidth = 1f)
-                    drawLine(guide, Offset(0f, yFor(50f)), Offset(w, yFor(50f)), strokeWidth = 1f)
-                    drawLine(guide, Offset(0f, yFor(0f)), Offset(w, yFor(0f)), strokeWidth = 1f)
-
-                    // Break the path across null gaps (no started habits that day).
-                    var segment = Path()
-                    var hasPoint = false
-                    points.forEachIndexed { i, point ->
-                        val v = point.momentumPercent
-                        if (v == null) {
-                            if (hasPoint) {
-                                drawPath(
-                                    path = segment,
-                                    color = accent,
-                                    style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                                )
-                                segment = Path()
-                                hasPoint = false
-                            }
-                        } else {
-                            val x = xFor(i)
-                            val y = yFor(v)
-                            if (!hasPoint) {
-                                segment.moveTo(x, y)
-                                hasPoint = true
-                            } else {
-                                segment.lineTo(x, y)
-                            }
-                        }
-                    }
-                    if (hasPoint) {
-                        drawPath(
-                            path = segment,
-                            color = accent,
-                            style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-                        )
-                    }
-                    points.forEachIndexed { i, point ->
-                        val v = point.momentumPercent ?: return@forEachIndexed
-                        drawCircle(
-                            color = accent,
-                            radius = 3.dp.toPx(),
-                            center = Offset(xFor(i), yFor(v))
-                        )
-                    }
-                }
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(ACTIVITY_CELL_SPACING)) {
-            // Align with canvas: left pad for Y tick labels already outside this row.
-            Spacer(modifier = Modifier.width(22.dp))
-            points.forEach { point ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .width(ACTIVITY_CELL_SIZE)
-                        .testTag("momentum_day_${point.dateString}")
-                ) {
-                    DayAxisLabels(dayLetter = point.dayLetter, dayNumber = point.dayNumber, isToday = point.isToday)
+            Row(horizontalArrangement = Arrangement.spacedBy(ACTIVITY_CELL_SPACING)) {
+                points.forEach { point ->
+                    DayAxisLabels(
+                        dayLetter = point.dayLetter,
+                        dayNumber = point.dayNumber,
+                        isToday = point.isToday,
+                        modifier = Modifier
+                            .width(ACTIVITY_CELL_SIZE)
+                            .testTag("momentum_day_${point.dateString}")
+                    )
                 }
             }
         }
@@ -576,36 +592,55 @@ private fun MomentumLineBody(
 }
 
 @Composable
-private fun DayAxisLabels(dayLetter: String, dayNumber: String, isToday: Boolean) {
-    Spacer(modifier = Modifier.height(4.dp))
-    Text(
-        text = dayLetter,
-        fontSize = 9.sp,
-        lineHeight = 9.sp,
-        fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-        color = if (isToday) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        textAlign = TextAlign.Center,
-        style = LocalTextStyle.current.copy(
-            platformStyle = PlatformTextStyle(includeFontPadding = false)
+private fun DayAxisLabels(
+    dayLetter: String,
+    dayNumber: String,
+    isToday: Boolean,
+    modifier: Modifier = Modifier,
+    /** When false, parent already paints the today column shade. */
+    shaded: Boolean = true
+) {
+    val todayFill = todayColumnFill()
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .then(
+                if (isToday && shaded) Modifier
+                    .clip(RoundedCornerShape(bottomStart = 6.dp, bottomEnd = 6.dp))
+                    .background(todayFill)
+                else Modifier
+            )
+            .padding(top = 4.dp, bottom = 2.dp)
+    ) {
+        Text(
+            text = dayLetter,
+            fontSize = 9.sp,
+            lineHeight = 9.sp,
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+            color = if (isToday) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            textAlign = TextAlign.Center,
+            style = LocalTextStyle.current.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
+            )
         )
-    )
-    Text(
-        text = dayNumber,
-        fontSize = 8.sp,
-        lineHeight = 8.sp,
-        fontWeight = if (isToday) FontWeight.SemiBold else FontWeight.Normal,
-        color = if (isToday) {
-            MaterialTheme.colorScheme.onSurface
-        } else {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        },
-        textAlign = TextAlign.Center,
-        style = LocalTextStyle.current.copy(
-            platformStyle = PlatformTextStyle(includeFontPadding = false)
+        Text(
+            text = dayNumber,
+            fontSize = 8.sp,
+            lineHeight = 8.sp,
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+            color = if (isToday) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            textAlign = TextAlign.Center,
+            style = LocalTextStyle.current.copy(
+                platformStyle = PlatformTextStyle(includeFontPadding = false)
+            )
         )
-    )
+    }
 }
