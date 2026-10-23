@@ -20,15 +20,9 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,6 +52,7 @@ import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.HabitRecordEntity
 import com.example.ui.theme.FloorGold
+import com.example.ui.theme.habitIconVector
 import com.example.ui.theme.parseHabitColor
 import com.example.ui.theme.RestShieldBlue
 
@@ -74,16 +68,6 @@ data class DayStripItem(
 val DAY_CELL_SIZE = 26.dp
 private val DAY_CELL_RADIUS = 6.dp
 val DAY_CELL_SHAPE = RoundedCornerShape(DAY_CELL_RADIUS)
-
-fun habitIconVector(iconName: String): ImageVector = when (iconName) {
-    "SelfImprovement" -> Icons.Default.SelfImprovement
-    "WaterDrop" -> Icons.Default.WaterDrop
-    "Psychology" -> Icons.Default.Psychology
-    "FitnessCenter" -> Icons.Default.FitnessCenter
-    "Timer" -> Icons.Default.Timer
-    "Bolt" -> Icons.Default.Bolt
-    else -> Icons.Default.Star
-}
 
 @Composable
 fun HabitMomentumBadge(habitId: Long, momentumPercent: Int, modifier: Modifier = Modifier) {

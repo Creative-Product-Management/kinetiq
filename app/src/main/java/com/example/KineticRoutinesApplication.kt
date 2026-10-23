@@ -4,11 +4,17 @@ import android.app.Application
 import com.example.data.repository.HabitRepository
 import com.example.di.AppContainer
 import com.example.notification.HabitNotificationScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class KineticRoutinesApplication : Application() {
 
     lateinit var container: AppContainer
         private set
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /** Back-compat accessors; new code should use [container]. */
     val repository: HabitRepository get() = container.habitRepository
@@ -19,9 +25,16 @@ class KineticRoutinesApplication : Application() {
         instance = this
         container = AppContainer(applicationContext)
         container.notificationScheduler.createNotificationChannels()
-        // No auto-seeding: a fresh install starts empty, and deleting every
-        // habit is a legitimate state that must survive relaunch. The only
-        // sample data is the single opt-in habit in Settings.
+        // No auto-seeding of habits: a fresh install starts with no habits, and
+        // deleting every habit is a legitimate state. Categories/stacks get a
+        // one-time default library so the editor has something to pick from.
+        appScope.launch {
+            val settings = container.settingsRepository
+            if (!settings.isLibraryDefaultsSeeded()) {
+                container.habitRepository.seedDefaultLibraryIfEmpty()
+                settings.setLibraryDefaultsSeeded(true)
+            }
+        }
     }
 
     companion object {

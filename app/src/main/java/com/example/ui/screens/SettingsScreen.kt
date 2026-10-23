@@ -80,6 +80,8 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     viewModel: KineticViewModel,
     onBack: () -> Unit,
+    onOpenCategories: () -> Unit = {},
+    onOpenStacks: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     BackHandler { onBack() }
@@ -175,6 +177,22 @@ fun SettingsScreen(
                     checked = showActivityChart,
                     onCheckedChange = { viewModel.setShowActivityChart(it) },
                     testTag = "activity_chart_toggle"
+                )
+            }
+
+            SettingsSection("Library") {
+                SettingsNavRow(
+                    title = "Categories",
+                    subtitle = "Organize habits in the editor",
+                    onClick = onOpenCategories,
+                    testTag = "settings_categories_row"
+                )
+                SettingsDivider()
+                SettingsNavRow(
+                    title = "Routine stacks",
+                    subtitle = "Morning, evening, and focus groups",
+                    onClick = onOpenStacks,
+                    testTag = "settings_stacks_row"
                 )
             }
 
@@ -393,6 +411,28 @@ private fun SettingsValueRow(title: String, value: String, onClick: () -> Unit, 
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
         TextButton(onClick = onClick, modifier = Modifier.testTag(testTag)) { Text(value) }
+    }
+}
+
+@Composable
+private fun SettingsNavRow(
+    title: String,
+    subtitle: String? = null,
+    onClick: () -> Unit,
+    testTag: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .testTag(testTag),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            if (subtitle != null) Text(subtitle, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text("›", fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

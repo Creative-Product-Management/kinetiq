@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 // Brand rename: intentionally kept — renaming the DataStore would silently reset all user settings.
@@ -72,7 +73,9 @@ data class KineticSettings(
     /** Home ordering: manual drag order, or dynamic Momentum (highest/lowest first). */
     val sortMode: HabitSortMode = HabitSortMode.MANUAL,
     /** Home habit list: Card (default) or compact Table with a shared sticky date header. */
-    val habitListLayout: HabitListLayout = HabitListLayout.CARD
+    val habitListLayout: HabitListLayout = HabitListLayout.CARD,
+    /** True after default categories/stacks were offered once (even if the user later deletes them). */
+    val libraryDefaultsSeeded: Boolean = false
 )
 
 class SettingsRepository(context: Context) {
@@ -90,7 +93,8 @@ class SettingsRepository(context: Context) {
             showActivityChart = p[SHOW_ACTIVITY_CHART] ?: true,
             dismissedNudgeIds = p[DISMISSED_NUDGES] ?: emptySet(),
             sortMode = HabitSortMode.fromStored(p[SORT_MODE]),
-            habitListLayout = HabitListLayout.fromStored(p[HABIT_LIST_LAYOUT])
+            habitListLayout = HabitListLayout.fromStored(p[HABIT_LIST_LAYOUT]),
+            libraryDefaultsSeeded = p[LIBRARY_DEFAULTS_SEEDED] ?: false
         )
     }
 
@@ -105,6 +109,8 @@ class SettingsRepository(context: Context) {
     suspend fun setShowActivityChart(v: Boolean) = store.edit { it[SHOW_ACTIVITY_CHART] = v }
     suspend fun setSortMode(mode: HabitSortMode) = store.edit { it[SORT_MODE] = mode.name }
     suspend fun setHabitListLayout(layout: HabitListLayout) = store.edit { it[HABIT_LIST_LAYOUT] = layout.name }
+    suspend fun setLibraryDefaultsSeeded(v: Boolean) = store.edit { it[LIBRARY_DEFAULTS_SEEDED] = v }
+    suspend fun isLibraryDefaultsSeeded(): Boolean = store.data.map { it[LIBRARY_DEFAULTS_SEEDED] ?: false }.first()
     suspend fun clearDismissedNudges() = store.edit { it.remove(DISMISSED_NUDGES) }
 
     companion object {
@@ -119,5 +125,6 @@ class SettingsRepository(context: Context) {
         private val SHOW_ACTIVITY_CHART = booleanPreferencesKey("show_activity_chart")
         private val SORT_MODE = stringPreferencesKey("habit_sort_mode")
         private val HABIT_LIST_LAYOUT = stringPreferencesKey("habit_list_layout")
+        private val LIBRARY_DEFAULTS_SEEDED = booleanPreferencesKey("library_defaults_seeded")
     }
 }

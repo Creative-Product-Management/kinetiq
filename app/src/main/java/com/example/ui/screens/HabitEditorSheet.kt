@@ -9,6 +9,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -45,6 +47,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -55,6 +58,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,17 +79,28 @@ import com.example.data.model.Category
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.RoutineStackEntity
+import com.example.domain.EditorKind
+import com.example.domain.MeasurableLogStyle
+import com.example.domain.resolveEditorModality
+import com.example.domain.toEditorKind
 import com.example.domain.validation.HabitValidator
+import com.example.ui.theme.DEFAULT_HABIT_COLOR_HEX
 import com.example.ui.theme.FloorGold
+import com.example.ui.theme.HABIT_COLOR_PRESETS
+import com.example.ui.theme.HABIT_ICON_CATALOG
 import com.example.ui.theme.KineticEmerald
 import com.example.ui.theme.KineticViolet
 import com.example.ui.theme.MissedRed
+import com.example.ui.theme.colorToHex
+import com.example.ui.theme.colorToHsv
+import com.example.ui.theme.hsvToColor
+import com.example.ui.theme.normalizeHex
 import com.example.ui.theme.parseHabitColor
 
 private fun formatDecimal(v: Double): String =
     if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HabitEditorSheet(
     habit: HabitEntity?,
@@ -95,20 +110,32 @@ fun HabitEditorSheet(
     onArchive: ((HabitEntity) -> Unit)? = null,
     categories: List<Category> = emptyList(),
     stacks: List<RoutineStackEntity> = emptyList(),
-    defaultFloorPercent: Int = 25
+    defaultFloorPercent: Int = 25,
+    onManageCategories: (() -> Unit)? = null,
+    onManageStacks: (() -> Unit)? = null
 ) {
+    val initialModality = habit?.modality ?: HabitModality.YES_NO
+    var editorKind by rememberSaveable(habit?.id) {
+        mutableStateOf(initialModality.toEditorKind().name)
+    }
+    var logStyle by rememberSaveable(habit?.id) {
+        mutableStateOf(
+            MeasurableLogStyle.fromModality(initialModality)?.name ?: MeasurableLogStyle.AMOUNT.name
+        )
+    }
+    val kind = EditorKind.valueOf(editorKind)
+    val measurableStyle = MeasurableLogStyle.valueOf(logStyle)
+    val modality = resolveEditorModality(kind, measurableStyle)
+
     var title by rememberSaveable(habit?.id) { mutableStateOf(habit?.title ?: "") }
     var description by rememberSaveable(habit?.id) { mutableStateOf(habit?.description ?: "") }
     var cueTrigger by rememberSaveable(habit?.id) { mutableStateOf(habit?.cueTrigger ?: "") }
-    var modality by rememberSaveable(habit?.id) { mutableStateOf(habit?.modality ?: HabitModality.YES_NO) }
-    // New habits start blank: target/unit are hinted via placeholders (which
-    // vanish on the first keystroke) instead of pre-filled saved values.
     var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "") }
     var floorValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.floorValue?.let { formatDecimal(it) } ?: "") }
     var unit by rememberSaveable(habit?.id) { mutableStateOf(habit?.unit ?: "") }
     var categoryId by rememberSaveable(habit?.id) { mutableStateOf(habit?.categoryId) }
     var routineStackId by rememberSaveable(habit?.id) { mutableStateOf(habit?.routineStackId) }
-    var colorHex by rememberSaveable(habit?.id) { mutableStateOf(habit?.colorHex ?: "#10B981") }
+    var colorHex by rememberSaveable(habit?.id) { mutableStateOf(habit?.colorHex ?: DEFAULT_HABIT_COLOR_HEX) }
     var iconName by rememberSaveable(habit?.id) { mutableStateOf(habit?.iconName ?: "SelfImprovement") }
     var hasReminder by rememberSaveable(habit?.id) { mutableStateOf(habit?.reminderHour != null) }
     var reminderHour by rememberSaveable(habit?.id) { mutableIntStateOf(habit?.reminderHour ?: 8) }
@@ -118,31 +145,52 @@ fun HabitEditorSheet(
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showDiscardConfirm by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showCustomColor by remember { mutableStateOf(false) }
     var validation by remember { mutableStateOf(HabitValidator.Result()) }
 
-    // Progressive disclosure: optional sections start expanded only when they already hold values.
     var detailsExpanded by rememberSaveable(habit?.id) { mutableStateOf(habit?.description?.isNotBlank() == true || habit?.cueTrigger?.isNotBlank() == true) }
     var organizeExpanded by rememberSaveable(habit?.id) { mutableStateOf(habit?.categoryId != null || habit?.routineStackId != null) }
-    var appearanceExpanded by rememberSaveable(habit?.id) { mutableStateOf(habit != null && (habit.colorHex != "#10B981" || habit.iconName != "SelfImprovement")) }
+    var appearanceExpanded by rememberSaveable(habit?.id) {
+        mutableStateOf(habit != null && (habit.colorHex != DEFAULT_HABIT_COLOR_HEX || habit.iconName != "SelfImprovement"))
+    }
     var scheduleExpanded by rememberSaveable(habit?.id) { mutableStateOf((habit?.restDaysMask ?: 0) != 0 || habit?.reminderHour != null) }
 
-    val colors = listOf("#10B981", "#8B5CF6", "#F59E0B", "#F43F5E", "#06B6D4", "#EC4899", "#3B82F6")
-    val icons = listOf("SelfImprovement", "WaterDrop", "Psychology", "FitnessCenter", "Timer", "Bolt", "Sparkles")
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val activeColor = remember(colorHex) { parseHabitColor(colorHex) }
 
-    val isDirty = remember(title, description, cueTrigger, modality, targetValue, floorValue, unit, categoryId, routineStackId, colorHex, iconName, hasReminder, reminderHour, reminderMinute, reminderDaysMask, restDaysMask) {
-        habit == null || title != habit.title || description != habit.description || cueTrigger != habit.cueTrigger ||
-            modality != habit.modality || targetValue != formatDecimal(habit.targetValue) ||
-            floorValue != (habit.floorValue?.let { formatDecimal(it) } ?: "") || categoryId != habit.categoryId ||
-            routineStackId != habit.routineStackId || restDaysMask != habit.restDaysMask
+    val isDirty = remember(
+        title, description, cueTrigger, modality, targetValue, floorValue, unit,
+        categoryId, routineStackId, colorHex, iconName,
+        hasReminder, reminderHour, reminderMinute, reminderDaysMask, restDaysMask
+    ) {
+        if (habit == null) {
+            title.isNotBlank() || description.isNotBlank() || cueTrigger.isNotBlank() ||
+                targetValue.isNotBlank() || floorValue.isNotBlank() || unit.isNotBlank() ||
+                categoryId != null || routineStackId != null ||
+                colorHex != DEFAULT_HABIT_COLOR_HEX || iconName != "SelfImprovement" ||
+                hasReminder || restDaysMask != 0 || modality != HabitModality.YES_NO
+        } else {
+            title != habit.title || description != habit.description || cueTrigger != habit.cueTrigger ||
+                modality != habit.modality ||
+                targetValue != formatDecimal(habit.targetValue) ||
+                floorValue != (habit.floorValue?.let { formatDecimal(it) } ?: "") ||
+                unit != habit.unit ||
+                categoryId != habit.categoryId ||
+                routineStackId != habit.routineStackId ||
+                !colorHex.equals(habit.colorHex, ignoreCase = true) ||
+                iconName != habit.iconName ||
+                hasReminder != (habit.reminderHour != null) ||
+                (hasReminder && (reminderHour != (habit.reminderHour ?: reminderHour) ||
+                    reminderMinute != (habit.reminderMinute ?: reminderMinute) ||
+                    reminderDaysMask != habit.reminderDaysMask)) ||
+                restDaysMask != habit.restDaysMask
+        }
     }
     fun requestDismiss() { if (isDirty) showDiscardConfirm = true else onDismiss() }
     BackHandler { requestDismiss() }
 
     fun save() {
         val targetNum = targetValue.toDoubleOrNull()
-        // Yes/No habits have no target field; their target is always 1.
         val effectiveTargetNum = if (modality == HabitModality.YES_NO) targetNum ?: 1.0 else targetNum
         val floorNum = if (floorValue.isBlank()) null else floorValue.toDoubleOrNull()
         validation = HabitValidator.validate(title, effectiveTargetNum, floorNum)
@@ -164,8 +212,6 @@ fun HabitEditorSheet(
         }
     }
 
-    // Input readability: typed text is large/semibold/bright, labels stay small and muted,
-    // and fields sit on a subtle filled surface so they read as inputs, not labels.
     val inputTextStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = activeColor,
@@ -201,7 +247,7 @@ fun HabitEditorSheet(
         cursorColor = KineticViolet
     )
 
-    val selectedCategoryName = categories.firstOrNull { it.id == categoryId }?.name ?: "General"
+    val selectedCategoryName = categories.firstOrNull { it.id == categoryId }?.name ?: "None"
     val selectedStackName = stacks.firstOrNull { it.id == routineStackId }?.name ?: "No stack"
     val restSummary = daysOfWeek.filterIndexed { i, _ -> ((restDaysMask shr i) and 1) == 1 }
         .joinToString(" ").ifBlank { "No rest days" }
@@ -246,7 +292,6 @@ fun HabitEditorSheet(
         ) {
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Essentials: what the habit is and how it's tracked.
             OutlinedTextField(
                 value = title, onValueChange = { title = it },
                 label = { Text("Title") },
@@ -260,20 +305,61 @@ fun HabitEditorSheet(
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HabitModality.entries.forEach { mod ->
-                    val isSelected = modality == mod
+                EditorKind.entries.forEach { k ->
+                    val isSelected = kind == k
+                    val label = if (k == EditorKind.CHECK_IN) "Check-in" else "Measurable"
                     Box(
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
                             .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
                             .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                            .clickable { modality = mod }
-                            .padding(vertical = 10.dp, horizontal = 4.dp).testTag("modality_tab_${mod.name}"),
+                            .clickable { editorKind = k.name }
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                            .testTag("editor_kind_${k.name}"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = mod.displayName, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                        Text(
+                            text = label,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
+
+            if (kind == EditorKind.MEASURABLE) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text("How I log", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MeasurableLogStyle.entries.forEach { style ->
+                        val isSelected = measurableStyle == style
+                        val label = when (style) {
+                            MeasurableLogStyle.AMOUNT -> "Amount"
+                            MeasurableLogStyle.COUNT -> "Count"
+                            MeasurableLogStyle.TIMER -> "Timer"
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
+                                .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                                .clickable { logStyle = style.name }
+                                .padding(vertical = 8.dp)
+                                .testTag("log_style_${style.name}"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                label,
+                                fontSize = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = when (modality) {
@@ -285,9 +371,7 @@ fun HabitEditorSheet(
                 fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("modality_hint")
             )
 
-            if (modality != HabitModality.YES_NO) {
-                // Placeholders are hints only: shown while a field is empty and
-                // replaced by the user's first keystroke; never saved.
+            if (kind == EditorKind.MEASURABLE) {
                 val placeholderStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
                 val targetPlaceholder = when (modality) {
                     HabitModality.NUMERIC -> "e.g., 2500"
@@ -341,7 +425,6 @@ fun HabitEditorSheet(
             }
             Spacer(modifier = Modifier.height(18.dp))
 
-            // Details: description + cue.
             EditorSection(
                 title = "Details",
                 summary = cueTrigger.ifBlank { description.ifBlank { "Description & cue (optional)" } },
@@ -370,7 +453,6 @@ fun HabitEditorSheet(
                 )
             }
 
-            // Organize: category + stack.
             EditorSection(
                 title = "Organize",
                 summary = "$selectedCategoryName · $selectedStackName",
@@ -380,24 +462,36 @@ fun HabitEditorSheet(
             ) {
                 Text("Category", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
-                if (categories.isEmpty()) {
-                    Text("General", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                } else {
-                    Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        categories.forEach { cat ->
-                            val isSelected = categoryId == cat.id
-                            Box(
-                                modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { categoryId = cat.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("category_option_${cat.id}")
-                            ) { Text(text = cat.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant) }
-                        }
+                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val noneSelected = categoryId == null
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp))
+                            .background(if (noneSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { categoryId = null }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                            .testTag("category_option_none")
+                    ) {
+                        Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (noneSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    categories.forEach { cat ->
+                        val isSelected = categoryId == cat.id
+                        Box(
+                            modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { categoryId = cat.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("category_option_${cat.id}")
+                        ) { Text(text = cat.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Routine stack (optional)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (onManageCategories != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    TextButton(onClick = onManageCategories, modifier = Modifier.testTag("manage_categories_link")) {
+                        Text("Manage categories", fontSize = 12.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Routine stack", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (routineStackId == null) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = null }.padding(horizontal = 12.dp, vertical = 6.dp)) {
+                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (routineStackId == null) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = null }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_none")) {
                         Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (routineStackId == null) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     stacks.forEach { stack ->
@@ -407,9 +501,14 @@ fun HabitEditorSheet(
                         }
                     }
                 }
+                if (onManageStacks != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    TextButton(onClick = onManageStacks, modifier = Modifier.testTag("manage_stacks_link")) {
+                        Text("Manage stacks", fontSize = 12.sp)
+                    }
+                }
             }
 
-            // Appearance: color + icon.
             EditorSection(
                 title = "Appearance",
                 summary = iconName,
@@ -420,27 +519,65 @@ fun HabitEditorSheet(
             ) {
                 Text("Color", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    colors.forEach { hex ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    HABIT_COLOR_PRESETS.forEach { hex ->
                         val c = parseHabitColor(hex)
                         val isSelected = colorHex.equals(hex, ignoreCase = true)
-                        Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(c).border(if (isSelected) 2.5.dp else 0.dp, Color.White, CircleShape).clickable { colorHex = hex })
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(c)
+                                .border(if (isSelected) 2.5.dp else 0.dp, Color.White, CircleShape)
+                                .clickable { colorHex = hex }
+                                .testTag("color_swatch_$hex")
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .height(36.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                            .clickable { showCustomColor = true }
+                            .padding(horizontal = 12.dp)
+                            .testTag("custom_color_btn"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Custom…", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Icon", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    icons.forEach { name ->
-                        val isSelected = iconName == name
-                        Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { iconName = name }.padding(horizontal = 12.dp, vertical = 6.dp)) {
-                            Text(name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HABIT_ICON_CATALOG.forEach { entry ->
+                        val isSelected = iconName == entry.name
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { iconName = entry.name }
+                                .testTag("icon_chip_${entry.name}"),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = entry.vector,
+                                contentDescription = entry.name,
+                                tint = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                     }
                 }
             }
 
-            // Schedule: rest shields + reminder.
             EditorSection(
                 title = "Schedule",
                 summary = "$restSummary · Reminder $reminderSummary",
@@ -507,6 +644,13 @@ fun HabitEditorSheet(
         }
     }
 
+    if (showCustomColor) {
+        CustomColorDialog(
+            initialHex = colorHex,
+            onDismiss = { showCustomColor = false },
+            onConfirm = { colorHex = it; showCustomColor = false }
+        )
+    }
     if (showTimePicker) {
         val timeState = rememberTimePickerState(initialHour = reminderHour, initialMinute = reminderMinute, is24Hour = true)
         AlertDialog(
@@ -541,7 +685,68 @@ fun HabitEditorSheet(
     }
 }
 
-/** Collapsible editor section with a one-line summary of its current values when closed. */
+@Composable
+private fun CustomColorDialog(
+    initialHex: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val initial = remember(initialHex) { parseHabitColor(initialHex) }
+    val initialHsv = remember(initialHex) { colorToHsv(initial) }
+    var hue by remember { mutableFloatStateOf(initialHsv[0]) }
+    var sat by remember { mutableFloatStateOf(initialHsv[1]) }
+    var value by remember { mutableFloatStateOf(initialHsv[2].coerceAtLeast(0.25f)) }
+    var hexField by remember { mutableStateOf(normalizeHex(initialHex).removePrefix("#")) }
+    val preview = hsvToColor(hue, sat, value)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Custom color") },
+        text = {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(preview)
+                )
+                Spacer(Modifier.height(12.dp))
+                Text("Hue", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(value = hue, onValueChange = { hue = it; hexField = colorToHex(hsvToColor(it, sat, value)).removePrefix("#") }, valueRange = 0f..360f)
+                Text("Saturation", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(value = sat, onValueChange = { sat = it; hexField = colorToHex(hsvToColor(hue, it, value)).removePrefix("#") }, valueRange = 0.15f..1f)
+                Text("Brightness", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Slider(value = value, onValueChange = { value = it; hexField = colorToHex(hsvToColor(hue, sat, it)).removePrefix("#") }, valueRange = 0.25f..0.85f)
+                OutlinedTextField(
+                    value = hexField,
+                    onValueChange = { raw ->
+                        hexField = raw.filter { it.isLetterOrDigit() }.take(6).uppercase()
+                        if (hexField.length == 6) {
+                            runCatching {
+                                val c = parseHabitColor("#$hexField")
+                                val hsv = colorToHsv(c)
+                                hue = hsv[0]; sat = hsv[1]; value = hsv[2].coerceIn(0.25f, 0.85f)
+                            }
+                        }
+                    },
+                    label = { Text("Hex") },
+                    prefix = { Text("#") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().testTag("custom_color_hex")
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(colorToHex(preview)) },
+                modifier = Modifier.testTag("custom_color_save")
+            ) { Text("Use color") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
 @Composable
 private fun EditorSection(
     title: String,

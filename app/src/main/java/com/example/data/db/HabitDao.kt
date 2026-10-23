@@ -46,6 +46,12 @@ interface HabitDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStack(stack: RoutineStackEntity): Long
 
+    @Update
+    suspend fun updateStack(stack: RoutineStackEntity)
+
+    @Delete
+    suspend fun deleteStack(stack: RoutineStackEntity)
+
     @Query("SELECT * FROM habits ORDER BY id ASC")
     suspend fun getAllHabitsList(): List<Habit>
 
@@ -57,4 +63,13 @@ interface HabitDao {
 
     @Query("SELECT COUNT(*) FROM habits")
     suspend fun getHabitsCount(): Int
+
+    @Query("SELECT COUNT(*) FROM habits WHERE categoryId = :categoryId")
+    suspend fun countHabitsWithCategory(categoryId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM habits WHERE routineStackId = :stackId")
+    suspend fun countHabitsWithStack(stackId: Long): Int
+
+    @Query("SELECT COUNT(*) FROM routine_stacks")
+    suspend fun getStackCount(): Int
 }

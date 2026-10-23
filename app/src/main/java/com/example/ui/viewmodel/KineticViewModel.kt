@@ -445,6 +445,40 @@ class KineticViewModel(
         viewModelScope.launch { habitRepository.saveOrder(ordered) }
     }
 
+    fun saveCategory(category: Category) {
+        viewModelScope.launch {
+            if (category.id == 0L) habitRepository.saveCategory(category)
+            else habitRepository.updateCategory(category)
+        }
+    }
+
+    fun deleteCategory(category: Category) {
+        viewModelScope.launch { habitRepository.deleteCategory(category) }
+    }
+
+    fun reorderCategories(ordered: List<Category>) {
+        viewModelScope.launch { habitRepository.reorderCategories(ordered) }
+    }
+
+    fun saveStack(stack: RoutineStackEntity) {
+        viewModelScope.launch {
+            if (stack.id == 0L) habitRepository.saveStack(stack)
+            else habitRepository.updateStack(stack)
+        }
+    }
+
+    fun deleteStack(stack: RoutineStackEntity) {
+        viewModelScope.launch { habitRepository.deleteStack(stack) }
+    }
+
+    /** Habits (active + archived) currently linked to this category. */
+    fun habitCountForCategory(categoryId: Long): Int =
+        (allHabits.value + archivedHabits.value).count { it.categoryId == categoryId }
+
+    /** Habits (active + archived) currently linked to this stack. */
+    fun habitCountForStack(stackId: Long): Int =
+        (allHabits.value + archivedHabits.value).count { it.routineStackId == stackId }
+
     fun sendTestNotification() { notificationScheduler.sendTestNotification("Mindful Breathwork") }
     fun canScheduleExactAlarms(): Boolean = notificationScheduler.canScheduleExactAlarms()
 
