@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 /** Day-scoped dismissal check: "<id>@yyyy-MM-dd". Bare legacy ids never match, so heroes reappear after upgrade. */
 fun isNudgeDismissed(nudgeId: String, dismissedIds: Set<String>, todayString: String): Boolean =
@@ -51,7 +52,13 @@ data class HabitCardUi(
     val recentDays: List<DayStripItem>,
     val momentumPercent: Int = 0,
     /** Last 30 days (ends today) for the Home activity chart; the chart shows as many as fit on screen. */
-    val activityDays: List<DayStripItem> = emptyList()
+    val activityDays: List<DayStripItem> = emptyList(),
+    /**
+     * Per-day momentum (0..100) for the same 30-day window as [activityDays],
+     * oldest first. Null before the habit's start date. Computed from the full
+     * 91-day momentum record window so early days carry EMA memory.
+     */
+    val momentumHistory: List<Float?> = emptyList()
 )
 
 /** Pure day-strip builder: [days] entries ending at [today], oldest first. */
@@ -258,13 +265,20 @@ class KineticViewModel(
         val momentumByHabit = momentum.groupBy { it.habitId }
         habits.map { habit ->
             val habitRecords = byHabit[habit.id].orEmpty()
+            val momentumLogs = momentumByHabit[habit.id].orEmpty()
+            val history = HabitAnalyticsEngine.momentumHistory(
+                habit, momentumLogs, restShieldEnabled = s.restShieldEnabled, days = 30
+            )
             HabitCardUi(
                 habit, catNames[habit.categoryId] ?: "General",
                 buildRecent7Days(habit.id, habitRecords, s.weekStartsOnMonday),
-                HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumByHabit[habit.id].orEmpty(), restShieldEnabled = s.restShieldEnabled),
+                // Prefer the history's last point so the badge matches the Home line.
+                momentumPercent = history.lastOrNull()?.roundToInt()?.coerceIn(0, 100)
+                    ?: HabitAnalyticsEngine.calculateMomentumPercent(habit, momentumLogs, restShieldEnabled = s.restShieldEnabled),
                 // Activity chart can show up to 30 days; source from the wider
                 // momentum window (the dashboard window is only 14 days).
-                activityDays = buildRecentDays(habit.id, momentumByHabit[habit.id].orEmpty(), days = 30)
+                activityDays = buildRecentDays(habit.id, momentumLogs, days = 30),
+                momentumHistory = history
             )
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

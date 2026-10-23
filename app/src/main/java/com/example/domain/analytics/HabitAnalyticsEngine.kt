@@ -7,6 +7,7 @@ import com.example.domain.time.KineticClock
 import com.example.domain.time.SystemKineticClock
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
 enum class HeatmapCellState { NONE, MISSED, REST_SHIELD, FLOOR_SUSTAINED, FULL_COMPLETED }
@@ -49,22 +50,28 @@ object HabitAnalyticsEngine {
     }
 
     /**
-     * Momentum only (0..100), using the exact EMA from [calculateAnalytics]:
-     * target = 1.0, floor = 0.65, miss = 0.0, damping 0.93, last 90 days,
-     * rest-shield days frozen. Cheap enough to compute per habit card.
+     * Daily momentum (0..100) for the last [days] calendar days ending today,
+     * oldest first. Days before [habitStartDate] are null (habit excluded from
+     * an overall average). From the start date onward the slot is the unrounded
+     * EMA × 100. The walk still begins at max(today−90, startDate) so older
+     * points in the visible window carry full memory.
      */
-    fun calculateMomentumPercent(
+    fun momentumHistory(
         habit: HabitEntity,
         records: List<HabitRecordEntity>,
         clock: KineticClock = SystemKineticClock,
-        restShieldEnabled: Boolean = true
-    ): Int {
+        restShieldEnabled: Boolean = true,
+        days: Int = 30
+    ): List<Float?> {
+        require(days > 0) { "days must be positive" }
         val today = clock.today()
         val startDate = habitStartDate(habit, records)
         val recordMap = records.associateBy { it.dateString }
+        val windowStart = today.minusDays((days - 1).toLong())
         var strength = 0.0f
         var date = maxOf(today.minusDays(90), startDate)
-        while (!date.isAfter(today)) {
+        // Warm the EMA through the day before the visible window.
+        while (date.isBefore(windowStart) && !date.isBefore(startDate)) {
             val record = recordMap[DateCodec.format(date)]
             val isDone = record?.let { it.isCompleted || it.isFloorSustained } == true
             val isRest = restShieldEnabled && habit.isRestDay(date.dayOfWeek.value)
@@ -78,7 +85,46 @@ object HabitAnalyticsEngine {
             }
             date = date.plusDays(1)
         }
-        return (strength * 100f).roundToInt().coerceIn(0, 100)
+        // If the habit starts after the window start, begin the walk at startDate
+        // (strength still 0) once we enter the visible range.
+        if (date.isBefore(startDate)) date = startDate
+        val history = MutableList<Float?>(days) { null }
+        while (!date.isAfter(today)) {
+            if (!date.isBefore(startDate)) {
+                val record = recordMap[DateCodec.format(date)]
+                val isDone = record?.let { it.isCompleted || it.isFloorSustained } == true
+                val isRest = restShieldEnabled && habit.isRestDay(date.dayOfWeek.value)
+                if (!(isRest && !isDone)) {
+                    val v = when {
+                        record?.isCompleted == true -> 1.0f
+                        record?.isFloorSustained == true -> 0.65f
+                        else -> 0.0f
+                    }
+                    strength = strength * 0.93f + (1f - 0.93f) * v
+                }
+                val offset = ChronoUnit.DAYS.between(windowStart, date).toInt()
+                if (offset in 0 until days) history[offset] = strength * 100f
+            }
+            date = date.plusDays(1)
+        }
+        return history
+    }
+
+    /**
+     * Momentum only (0..100), using the exact EMA from [calculateAnalytics]:
+     * target = 1.0, floor = 0.65, miss = 0.0, damping 0.93, last 90 days,
+     * rest-shield days frozen. Derived from [momentumHistory] so the card
+     * badge matches the right edge of the Home momentum line.
+     */
+    fun calculateMomentumPercent(
+        habit: HabitEntity,
+        records: List<HabitRecordEntity>,
+        clock: KineticClock = SystemKineticClock,
+        restShieldEnabled: Boolean = true
+    ): Int {
+        val last = momentumHistory(habit, records, clock, restShieldEnabled, days = 1)
+            .lastOrNull() ?: return 0
+        return last.roundToInt().coerceIn(0, 100)
     }
 
     fun calculateAnalytics(

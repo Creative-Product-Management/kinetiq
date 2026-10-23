@@ -11,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.roundToInt
 
 class AnalyticsDeterministicTest {
 
@@ -103,6 +104,43 @@ class AnalyticsDeterministicTest {
         val miss = strengthFor(null)
         assertTrue(target > floor)
         assertTrue(floor >= miss)
+    }
+
+    @Test fun `momentum history is null before start and today matches percent`() {
+        val today = LocalDate.of(2026, 10, 21)
+        val h = habit(today)
+        val records = listOf(LogEntry(habitId = 1, dateString = "2026-10-21", isCompleted = true))
+        val clock = FixedKineticClock(today)
+        val history = HabitAnalyticsEngine.momentumHistory(h, records, clock = clock, days = 7)
+        assertEquals(7, history.size)
+        assertTrue(history.dropLast(1).all { it == null })
+        assertEquals(7, history.last()!!.roundToInt())
+        assertEquals(7, HabitAnalyticsEngine.calculateMomentumPercent(h, records, clock = clock))
+    }
+
+    @Test fun `momentum history seven target days rounds to forty`() {
+        val today = LocalDate.of(2026, 10, 21)
+        val h = habit(today.minusDays(6))
+        val records = (0..6).map { offset ->
+            LogEntry(habitId = 1, dateString = today.minusDays((6 - offset).toLong()).toString(), isCompleted = true)
+        }
+        val clock = FixedKineticClock(today)
+        val history = HabitAnalyticsEngine.momentumHistory(h, records, clock = clock, days = 7)
+        assertEquals(40, history.last()!!.roundToInt())
+        assertEquals(40, HabitAnalyticsEngine.calculateMomentumPercent(h, records, clock = clock))
+    }
+
+    @Test fun `rest shield day freezes momentum history`() {
+        // Oct 21 2026 = Wed → Oct 19 Mon, Oct 20 Tue. Rest on Tue (bit 1).
+        val created = LocalDate.of(2026, 10, 19)
+        val h = habit(created, restMask = 1 shl 1)
+        val records = listOf(LogEntry(habitId = 1, dateString = "2026-10-19", isCompleted = true))
+        val throughRest = HabitAnalyticsEngine.momentumHistory(
+            h, records, clock = FixedKineticClock(LocalDate.of(2026, 10, 20)), days = 2
+        )
+        // Mon ≈ 7%; Tue rest with no log freezes that score.
+        assertEquals(throughRest[0], throughRest[1])
+        assertTrue(throughRest[0] != null && throughRest[0]!! > 0f)
     }
 
     @Test fun `analytics cache is keyed by the records it was computed from`() {

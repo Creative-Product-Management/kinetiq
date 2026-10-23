@@ -171,7 +171,7 @@ fun SettingsScreen(
                 SettingsDivider()
                 SettingsToggleRow(
                     title = "Activity Chart",
-                    subtitle = "Habits × dates overview on Home",
+                    subtitle = "Activity stacks and Momentum line on Home",
                     checked = showActivityChart,
                     onCheckedChange = { viewModel.setShowActivityChart(it) },
                     testTag = "activity_chart_toggle"

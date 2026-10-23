@@ -154,8 +154,10 @@ The engine also records the last 30 days of daily scores
 (`strengthHistory`). The trajectory compares today's score with the
 score 7 days ago: `> +3` → `Accelerating`, `< −3` → `Rebuilding`,
 otherwise `≥ 70` → `Steady High`, else `Forming Routine`.
-Note: `strengthHistory` is currently computed but not displayed in the
-UI (available for a future momentum chart).
+Note: `strengthHistory` on the detail screen is currently computed but not
+displayed in the UI. The Home chart's Momentum mode plots the unweighted
+mean of each visible habit's daily momentum (`momentumHistory`) over the
+same recent dates as the Activity stacks.
 
 ### Delivery pipeline
 

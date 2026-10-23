@@ -5,9 +5,12 @@ import com.example.data.model.LogEntry
 import com.example.ui.components.activityColumnCount
 import com.example.ui.components.activityStackRows
 import com.example.ui.components.buildActivityColumns
+import com.example.ui.components.buildOverallMomentumPoints
+import com.example.ui.components.overallMomentumHeadline
 import com.example.ui.viewmodel.HabitCardUi
 import com.example.ui.viewmodel.buildDayStrip
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -16,13 +19,20 @@ class HabitActivityChartTest {
 
     private val today: LocalDate = LocalDate.of(2026, 10, 21)
 
-    private fun card(id: Long, colorHex: String, records: List<LogEntry>): HabitCardUi {
+    private fun card(
+        id: Long,
+        colorHex: String,
+        records: List<LogEntry>,
+        momentumHistory: List<Float?> = emptyList(),
+        activityDays: Int = 14
+    ): HabitCardUi {
         val habit = Habit(id = id, title = "H$id", colorHex = colorHex)
         return HabitCardUi(
             habit = habit,
             categoryName = "General",
             recentDays = buildDayStrip(records.filter { it.habitId == id }, today, days = 7),
-            activityDays = buildDayStrip(records.filter { it.habitId == id }, today, days = 14)
+            activityDays = buildDayStrip(records.filter { it.habitId == id }, today, days = activityDays),
+            momentumHistory = momentumHistory
         )
     }
 
@@ -79,5 +89,35 @@ class HabitActivityChartTest {
         assertEquals(30, activityColumnCount(2000))
         // Degenerate widths still show at least today.
         assertEquals(1, activityColumnCount(10))
+    }
+
+    @Test fun `overall momentum averages non-null histories and skips unstarted habits`() {
+        val historyA = List(14) { null as Float? }.toMutableList().also {
+            it[12] = 10f
+            it[13] = 20f
+        }
+        val historyB = List(14) { null as Float? }.toMutableList().also {
+            it[13] = 40f
+        }
+        val cards = listOf(
+            card(1, "#111111", emptyList(), momentumHistory = historyA),
+            card(2, "#222222", emptyList(), momentumHistory = historyB)
+        )
+        val points = buildOverallMomentumPoints(cards)
+        assertEquals(14, points.size)
+        assertEquals(buildActivityColumns(cards).map { it.dateString }, points.map { it.dateString })
+        assertNull(points[11].momentumPercent)
+        assertEquals(10f, points[12].momentumPercent!!, 0.01f) // only A started
+        assertEquals(30f, points[13].momentumPercent!!, 0.01f) // mean of 20 and 40
+        assertEquals(30, overallMomentumHeadline(points))
+    }
+
+    @Test fun `overall momentum is null when no habit has started`() {
+        val cards = listOf(
+            card(1, "#111111", emptyList(), momentumHistory = List(14) { null })
+        )
+        val points = buildOverallMomentumPoints(cards)
+        assertTrue(points.all { it.momentumPercent == null })
+        assertNull(overallMomentumHeadline(points))
     }
 }
