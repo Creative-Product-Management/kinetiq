@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteOpenHelper
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.db.KineticDatabase
 import com.example.data.db.MIGRATION_2_3
+import com.example.data.db.MIGRATION_3_4
 import com.example.data.model.Category
 import com.example.data.model.Habit
 import com.example.data.model.HabitModality
@@ -223,12 +224,13 @@ class RepositoryRobolectricTest {
         writable.close(); helper.close()
 
         val db = Room.databaseBuilder(context, KineticDatabase::class.java, name)
-            .addMigrations(MIGRATION_2_3).allowMainThreadQueries().build()
+            .addMigrations(MIGRATION_2_3, MIGRATION_3_4).allowMainThreadQueries().build()
         runBlocking {
             val habit = db.habitDao().getHabitById(7)
             assertNotNull(habit)
             assertEquals("Legacy Habit", habit!!.title)
             assertEquals(2.5, habit.targetValue, 0.001)
+            assertEquals("", habit.checkInQuestion)
             assertNotNull("categoryId must be backfilled from legacy text", habit.categoryId)
             val logs = db.logEntryDao().getLogsListForHabit(7)
             assertEquals(1, logs.size)

@@ -71,7 +71,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -80,8 +79,7 @@ import com.example.data.model.HabitEntity
 import com.example.data.model.HabitModality
 import com.example.data.model.RoutineStackEntity
 import com.example.domain.EditorKind
-import com.example.domain.MeasurableLogStyle
-import com.example.domain.resolveEditorModality
+import com.example.domain.modalityDisplayLabel
 import com.example.domain.toEditorKind
 import com.example.domain.validation.HabitValidator
 import com.example.ui.theme.DEFAULT_HABIT_COLOR_HEX
@@ -104,6 +102,7 @@ private fun formatDecimal(v: Double): String =
 @Composable
 fun HabitEditorSheet(
     habit: HabitEntity?,
+    lockedModality: HabitModality,
     onDismiss: () -> Unit,
     onSave: (HabitEntity) -> Unit,
     onDelete: ((HabitEntity) -> Unit)? = null,
@@ -111,23 +110,18 @@ fun HabitEditorSheet(
     categories: List<Category> = emptyList(),
     stacks: List<RoutineStackEntity> = emptyList(),
     defaultFloorPercent: Int = 25,
+    initialCheckInQuestion: String = "",
     onManageCategories: (() -> Unit)? = null,
     onManageStacks: (() -> Unit)? = null
 ) {
-    val initialModality = habit?.modality ?: HabitModality.YES_NO
-    var editorKind by rememberSaveable(habit?.id) {
-        mutableStateOf(initialModality.toEditorKind().name)
-    }
-    var logStyle by rememberSaveable(habit?.id) {
-        mutableStateOf(
-            MeasurableLogStyle.fromModality(initialModality)?.name ?: MeasurableLogStyle.AMOUNT.name
-        )
-    }
-    val kind = EditorKind.valueOf(editorKind)
-    val measurableStyle = MeasurableLogStyle.valueOf(logStyle)
-    val modality = resolveEditorModality(kind, measurableStyle)
+    // Type is chosen before create (or taken from the existing habit) and never editable here.
+    val modality = lockedModality
+    val kind = modality.toEditorKind()
 
     var title by rememberSaveable(habit?.id) { mutableStateOf(habit?.title ?: "") }
+    var checkInQuestion by rememberSaveable(habit?.id) {
+        mutableStateOf(habit?.checkInQuestion ?: initialCheckInQuestion)
+    }
     var description by rememberSaveable(habit?.id) { mutableStateOf(habit?.description ?: "") }
     var cueTrigger by rememberSaveable(habit?.id) { mutableStateOf(habit?.cueTrigger ?: "") }
     var targetValue by rememberSaveable(habit?.id) { mutableStateOf(habit?.targetValue?.let { formatDecimal(it) } ?: "") }
@@ -162,19 +156,22 @@ fun HabitEditorSheet(
     val chromeOnAccent = MaterialTheme.colorScheme.onPrimary
 
     val isDirty = remember(
-        title, description, cueTrigger, modality, targetValue, floorValue, unit,
+        title, checkInQuestion, description, cueTrigger, targetValue, floorValue, unit,
         categoryId, routineStackId, colorHex, iconName,
-        hasReminder, reminderHour, reminderMinute, reminderDaysMask, restDaysMask
+        hasReminder, reminderHour, reminderMinute, reminderDaysMask, restDaysMask,
+        initialCheckInQuestion
     ) {
         if (habit == null) {
             title.isNotBlank() || description.isNotBlank() || cueTrigger.isNotBlank() ||
                 targetValue.isNotBlank() || floorValue.isNotBlank() || unit.isNotBlank() ||
                 categoryId != null || routineStackId != null ||
                 colorHex != DEFAULT_HABIT_COLOR_HEX || iconName != "SelfImprovement" ||
-                hasReminder || restDaysMask != 0 || modality != HabitModality.YES_NO
+                hasReminder || restDaysMask != 0 ||
+                (initialCheckInQuestion.isNotBlank() && checkInQuestion != initialCheckInQuestion) ||
+                (initialCheckInQuestion.isBlank() && checkInQuestion.isNotBlank())
         } else {
-            title != habit.title || description != habit.description || cueTrigger != habit.cueTrigger ||
-                modality != habit.modality ||
+            title != habit.title || checkInQuestion != habit.checkInQuestion ||
+                description != habit.description || cueTrigger != habit.cueTrigger ||
                 targetValue != formatDecimal(habit.targetValue) ||
                 floorValue != (habit.floorValue?.let { formatDecimal(it) } ?: "") ||
                 unit != habit.unit ||
@@ -200,9 +197,13 @@ fun HabitEditorSheet(
         if (modality != HabitModality.YES_NO && floorValue.isNotBlank() && floorNum == null) {
             validation = validation.copy(floorError = "Enter a valid number")
         }
-        if (validation.isValid) {
+        val questionMissing = modality == HabitModality.YES_NO && checkInQuestion.isBlank()
+        if (validation.isValid && !questionMissing) {
             val newHabit = (habit ?: HabitEntity(title = title)).copy(
-                title = title.trim(), description = description, cueTrigger = cueTrigger,
+                title = title.trim(),
+                description = description,
+                cueTrigger = cueTrigger,
+                checkInQuestion = if (modality == HabitModality.YES_NO) checkInQuestion.trim() else "",
                 modality = modality, targetValue = effectiveTargetNum ?: 1.0, floorValue = floorNum,
                 unit = unit.ifBlank { modality.defaultUnit },
                 categoryId = categoryId, routineStackId = routineStackId,
@@ -301,7 +302,14 @@ fun HabitEditorSheet(
             OutlinedTextField(
                 value = title, onValueChange = { title = it },
                 label = { Text("Title") },
-                placeholder = { Text("e.g., Morning Breathwork, 2L Water", fontSize = 14.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
+                placeholder = {
+                    Text(
+                        "e.g., Morning Breathwork, Meditate",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                },
                 singleLine = true, isError = validation.titleError != null,
                 supportingText = validation.titleError?.let { { Text(it, color = MissedRed) } },
                 textStyle = inputTextStyle,
@@ -310,69 +318,62 @@ fun HabitEditorSheet(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                EditorKind.entries.forEach { k ->
-                    val isSelected = kind == k
-                    val label = if (k == EditorKind.CHECK_IN) "Check-in" else "Measurable"
-                    Box(
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                            .background(if (isSelected) chromeAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (isSelected) chromeAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                            .clickable { editorKind = k.name }
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                            .testTag("editor_kind_${k.name}"),
-                        contentAlignment = Alignment.Center
-                    ) {
+            if (kind == EditorKind.CHECK_IN) {
+                val questionMissing = checkInQuestion.isBlank()
+                OutlinedTextField(
+                    value = checkInQuestion,
+                    onValueChange = { checkInQuestion = it },
+                    label = { Text("Check-in question") },
+                    placeholder = {
                         Text(
-                            text = label,
-                            fontSize = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
+                            "e.g., Did you meditate today?",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
-                    }
-                }
+                    },
+                    supportingText = {
+                        Text(
+                            if (questionMissing) "Required for reminders"
+                            else "Shown in check-in reminder notifications",
+                            fontSize = 11.sp,
+                            color = if (questionMissing) MissedRed else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    singleLine = true,
+                    isError = questionMissing,
+                    textStyle = inputTextStyle,
+                    colors = fieldColors,
+                    modifier = Modifier.fillMaxWidth().testTag("habit_checkin_question_input")
+                )
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            if (kind == EditorKind.MEASURABLE) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Text("How I log", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MeasurableLogStyle.entries.forEach { style ->
-                        val isSelected = measurableStyle == style
-                        val label = when (style) {
-                            MeasurableLogStyle.AMOUNT -> "Amount"
-                            MeasurableLogStyle.COUNT -> "Count"
-                            MeasurableLogStyle.TIMER -> "Timer"
-                        }
-                        Box(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) chromeAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
-                                .border(1.dp, if (isSelected) chromeAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                                .clickable { logStyle = style.name }
-                                .padding(vertical = 8.dp)
-                                .testTag("log_style_${style.name}"),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                label,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    .padding(vertical = 10.dp, horizontal = 12.dp)
+                    .testTag("editor_locked_modality"),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Text(
+                    text = modalityDisplayLabel(modality),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
 
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = when (modality) {
-                    HabitModality.YES_NO -> "Simple daily check-in."
-                    HabitModality.NUMERIC -> "Track an amount each day, e.g. 2500 ml of water."
-                    HabitModality.TIMER -> "Track time in minutes with the built-in timer."
-                    HabitModality.TALLY -> "Count repeats. Each tap adds 1 until the target is met."
+                    HabitModality.YES_NO -> "Simple daily check-in. Type is locked after create."
+                    HabitModality.NUMERIC -> "Track an amount each day, e.g. 2500 ml of water. Type is locked after create."
+                    HabitModality.TIMER -> "Track time in minutes with the built-in timer. Type is locked after create."
+                    HabitModality.TALLY -> "Count repeats. Each tap adds 1 until the target is met. Type is locked after create."
                 },
                 fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("modality_hint")
             )

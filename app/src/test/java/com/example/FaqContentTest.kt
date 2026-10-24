@@ -12,6 +12,23 @@ class FaqContentTest {
         assertTrue(categories.containsAll(setOf("Getting started", "Momentum score", "Rest Shield & streaks", "Reminders", "Privacy & data")))
     }
 
+    @Test fun `create faq describes type sheet and locked types`() {
+        val create = FAQ_ITEMS.first { it.question == "How do I create my first habit?" }.answer
+        assertTrue(create.contains("Check-in"))
+        assertTrue(create.contains("Measurable"))
+        assertTrue(create.contains("check-in question", ignoreCase = true))
+        assertTrue(create.contains("title", ignoreCase = true))
+        val locked = FAQ_ITEMS.first { it.question == "Can I change a habit's type later?" }
+        assertTrue(locked.answer.contains("locked", ignoreCase = true))
+        assertTrue(locked.answer.contains("delete", ignoreCase = true))
+        val types = FAQ_ITEMS.first { it.question == "What are the habit types?" }.answer
+        assertTrue(types.contains("Check-in"))
+        assertTrue(types.contains("check-in question", ignoreCase = true))
+        assertTrue(types.contains("Amount"))
+        assertTrue(types.contains("Count"))
+        assertTrue(types.contains("Timer"))
+    }
+
     @Test fun `faq questions are unique and answers are non-blank`() {
         assertEquals(FAQ_ITEMS.size, FAQ_ITEMS.map { it.question }.distinct().size)
         assertTrue(FAQ_ITEMS.all { it.question.isNotBlank() && it.answer.isNotBlank() })

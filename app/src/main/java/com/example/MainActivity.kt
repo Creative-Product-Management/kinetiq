@@ -122,19 +122,34 @@ class MainActivity : ComponentActivity() {
                             val categories by viewModel.allCategories.collectAsStateWithLifecycle()
                             val stacks by viewModel.allStacks.collectAsStateWithLifecycle()
                             val floorPct by viewModel.defaultFloorPercent.collectAsStateWithLifecycle()
+                            val createDraft by viewModel.createDraft.collectAsStateWithLifecycle()
                             val habit = if (habitId > 0) (habits + archived).firstOrNull { it.id == habitId } else null
-                            HabitEditorSheet(
-                                habit = habit,
-                                onDismiss = { viewModel.closeEditor(); navController.popBackStack() },
-                                onSave = { updated -> viewModel.saveHabit(updated); navController.popBackStack() },
-                                onDelete = { toDelete -> viewModel.deleteHabit(toDelete); navController.popBackStack("dashboard", inclusive = false) },
-                                onArchive = { toArchive -> viewModel.archiveHabit(toArchive); navController.popBackStack("dashboard", inclusive = false) },
-                                categories = categories,
-                                stacks = stacks,
-                                defaultFloorPercent = floorPct,
-                                onManageCategories = { navController.navigate("settings/categories") },
-                                onManageStacks = { navController.navigate("settings/stacks") }
-                            )
+                            // Create requires a draft from the type sheet; edit uses the habit's modality.
+                            if (habitId <= 0 && createDraft == null) {
+                                LaunchedEffect(Unit) { navController.popBackStack() }
+                            } else if (habitId > 0 && habit == null) {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
+                            } else {
+                                val lockedModality = habit?.modality ?: createDraft!!.modality
+                                val initialCheckInQuestion =
+                                    habit?.checkInQuestion ?: createDraft?.initialCheckInQuestion.orEmpty()
+                                HabitEditorSheet(
+                                    habit = habit,
+                                    lockedModality = lockedModality,
+                                    initialCheckInQuestion = initialCheckInQuestion,
+                                    onDismiss = { viewModel.closeEditor(); navController.popBackStack() },
+                                    onSave = { updated -> viewModel.saveHabit(updated); navController.popBackStack() },
+                                    onDelete = { toDelete -> viewModel.deleteHabit(toDelete); navController.popBackStack("dashboard", inclusive = false) },
+                                    onArchive = { toArchive -> viewModel.archiveHabit(toArchive); navController.popBackStack("dashboard", inclusive = false) },
+                                    categories = categories,
+                                    stacks = stacks,
+                                    defaultFloorPercent = floorPct,
+                                    onManageCategories = { navController.navigate("settings/categories") },
+                                    onManageStacks = { navController.navigate("settings/stacks") }
+                                )
+                            }
                         }
                         composable("settings") {
                             SettingsScreen(

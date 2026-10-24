@@ -29,6 +29,53 @@ class Converters {
 }
 
 /**
+ * v3 -> v4: adds [Habit.checkInQuestion] for Check-in reminder copy.
+ * Recreates `habits` so column order matches the Room entity (ALTER TABLE
+ * would append the column and fail identity validation).
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        // Off while swapping habits so ON DELETE CASCADE on log_entries does not wipe logs.
+        db.execSQL("PRAGMA foreign_keys=OFF")
+        db.execSQL(
+            """CREATE TABLE IF NOT EXISTS habits_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                cueTrigger TEXT NOT NULL,
+                checkInQuestion TEXT NOT NULL,
+                modality TEXT NOT NULL,
+                targetValue REAL NOT NULL,
+                floorValue REAL,
+                unit TEXT NOT NULL,
+                categoryId INTEGER,
+                colorHex TEXT NOT NULL,
+                iconName TEXT NOT NULL,
+                reminderHour INTEGER,
+                reminderMinute INTEGER,
+                reminderDaysMask INTEGER NOT NULL,
+                restDaysMask INTEGER NOT NULL,
+                routineStackId INTEGER,
+                orderIndex INTEGER NOT NULL,
+                isArchived INTEGER NOT NULL,
+                createdAt INTEGER NOT NULL,
+                FOREIGN KEY(categoryId) REFERENCES categories(id) ON UPDATE NO ACTION ON DELETE SET NULL,
+                FOREIGN KEY(routineStackId) REFERENCES routine_stacks(id) ON UPDATE NO ACTION ON DELETE SET NULL
+            )""".trimIndent()
+        )
+        db.execSQL(
+            "INSERT INTO habits_new (id, title, description, cueTrigger, checkInQuestion, modality, targetValue, floorValue, unit, categoryId, colorHex, iconName, reminderHour, reminderMinute, reminderDaysMask, restDaysMask, routineStackId, orderIndex, isArchived, createdAt) " +
+                "SELECT id, title, description, cueTrigger, '', modality, targetValue, floorValue, unit, categoryId, colorHex, iconName, reminderHour, reminderMinute, reminderDaysMask, restDaysMask, routineStackId, orderIndex, isArchived, createdAt FROM habits"
+        )
+        db.execSQL("DROP TABLE habits")
+        db.execSQL("ALTER TABLE habits_new RENAME TO habits")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_habits_categoryId ON habits (categoryId)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS index_habits_routineStackId ON habits (routineStackId)")
+        db.execSQL("PRAGMA foreign_keys=ON")
+    }
+}
+
+/**
  * v2 -> v3:
  * - Backfills [Habit.categoryId] from the legacy free-text `category` column
  *   (creating Category rows for any names not yet present), then drops the
@@ -119,7 +166,7 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         Category::class,
         RoutineStackEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -129,6 +176,6 @@ abstract class KineticDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
 
     companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_2_3)
+        val ALL_MIGRATIONS = arrayOf(MIGRATION_2_3, MIGRATION_3_4)
     }
 }

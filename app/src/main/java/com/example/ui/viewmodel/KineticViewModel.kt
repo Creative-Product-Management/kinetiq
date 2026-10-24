@@ -62,6 +62,13 @@ data class HabitCardUi(
     val momentumHistory: List<Float?> = emptyList()
 )
 
+/** Short-lived create intent: type chosen in the sheet before the details editor opens. */
+data class HabitCreateDraft(
+    val modality: HabitModality,
+    /** Prefill for Check-in reminder question only — not the display title. */
+    val initialCheckInQuestion: String = ""
+)
+
 /** Pure day-strip builder: [days] entries ending at [today], oldest first. */
 fun buildDayStrip(habitRecords: List<HabitRecordEntity>, today: LocalDate, days: Int): List<DayStripItem> {
     require(days > 0) { "days must be positive" }
@@ -292,6 +299,8 @@ class KineticViewModel(
     val isEditorOpen: StateFlow<Boolean> = _isEditorOpen.asStateFlow()
     private val _habitForEditor = MutableStateFlow<HabitEntity?>(null)
     val habitForEditor: StateFlow<HabitEntity?> = _habitForEditor.asStateFlow()
+    private val _createDraft = MutableStateFlow<HabitCreateDraft?>(null)
+    val createDraft: StateFlow<HabitCreateDraft?> = _createDraft.asStateFlow()
     private val _isSettingsOpen = MutableStateFlow(false)
     val isSettingsOpen: StateFlow<Boolean> = _isSettingsOpen.asStateFlow()
     private val _isNotificationSettingsOpen = MutableStateFlow(false)
@@ -346,7 +355,18 @@ class KineticViewModel(
     fun closeHabitDetail() { _selectedHabitForDetail.value = null }
     fun openNewHabitEditor() { _habitForEditor.value = null; _isEditorOpen.value = true }
     fun openEditHabitEditor(habit: HabitEntity) { _habitForEditor.value = habit; _isEditorOpen.value = true }
-    fun closeEditor() { _isEditorOpen.value = false; _habitForEditor.value = null }
+    fun closeEditor() {
+        _isEditorOpen.value = false
+        _habitForEditor.value = null
+        clearCreateDraft()
+    }
+    fun beginCreateHabit(modality: HabitModality, initialCheckInQuestion: String = "") {
+        _createDraft.value = HabitCreateDraft(
+            modality = modality,
+            initialCheckInQuestion = initialCheckInQuestion.trim()
+        )
+    }
+    fun clearCreateDraft() { _createDraft.value = null }
     fun openNotificationSettings() { _isNotificationSettingsOpen.value = true }
     fun closeNotificationSettings() { _isNotificationSettingsOpen.value = false }
     fun openTimer(habit: HabitEntity) { _activeTimerHabit.value = habit }

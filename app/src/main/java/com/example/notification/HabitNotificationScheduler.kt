@@ -57,6 +57,7 @@ class HabitNotificationScheduler(private val context: Context) {
         putExtra(HabitNotificationReceiver.EXTRA_HABIT_ID, habit.id)
         putExtra(HabitNotificationReceiver.EXTRA_HABIT_TITLE, habit.title)
         putExtra(HabitNotificationReceiver.EXTRA_HABIT_CUE, habit.cueTrigger)
+        putExtra(HabitNotificationReceiver.EXTRA_CHECK_IN_QUESTION, habit.checkInQuestion)
         putExtra(HabitNotificationReceiver.EXTRA_HABIT_MODALITY, habit.modality.name)
         putExtra(HabitNotificationReceiver.EXTRA_FLOOR_VALUE, habit.floorValue ?: -1.0)
         putExtra(HabitNotificationReceiver.EXTRA_TARGET_VALUE, habit.targetValue)
