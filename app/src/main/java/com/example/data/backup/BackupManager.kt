@@ -24,7 +24,9 @@ data class BackupHabit(
     val categoryId: Long?, val colorHex: String, val iconName: String,
     val reminderHour: Int?, val reminderMinute: Int?, val reminderDaysMask: Int,
     val restDaysMask: Int, val routineStackId: Long?, val orderIndex: Int,
-    val isArchived: Boolean, val createdAt: Long
+    val isArchived: Boolean, val createdAt: Long,
+    /** Absent in older backups; Moshi fills the default. */
+    val checkInQuestion: String = ""
 )
 
 @JsonClass(generateAdapter = false)
@@ -68,7 +70,11 @@ class BackupManager(private val habitRepository: HabitRepository) {
             categories = habitRepository.snapshotCategories().map { BackupCategory(it.id, it.name, it.colorHex, it.iconName, it.orderIndex) },
             stacks = habitRepository.snapshotStacks().map { BackupStack(it.id, it.name, it.description, it.iconName, it.colorHex) },
             habits = habitRepository.snapshotHabits().map {
-                BackupHabit(it.id, it.title, it.description, it.cueTrigger, it.modality.name, it.targetValue, it.floorValue, it.unit, it.categoryId, it.colorHex, it.iconName, it.reminderHour, it.reminderMinute, it.reminderDaysMask, it.restDaysMask, it.routineStackId, it.orderIndex, it.isArchived, it.createdAt)
+                BackupHabit(
+                    it.id, it.title, it.description, it.cueTrigger, it.modality.name, it.targetValue, it.floorValue, it.unit,
+                    it.categoryId, it.colorHex, it.iconName, it.reminderHour, it.reminderMinute, it.reminderDaysMask,
+                    it.restDaysMask, it.routineStackId, it.orderIndex, it.isArchived, it.createdAt, it.checkInQuestion
+                )
             },
             logs = habitRepository.snapshotLogs().map {
                 BackupLog(it.id, it.habitId, it.dateString, it.isCompleted, it.isFloorSustained, it.numericValue, it.durationSeconds, it.tallyCount, it.frictionTag, it.notes, it.recordedAt)
@@ -89,12 +95,15 @@ class BackupManager(private val habitRepository: HabitRepository) {
             categories = payload.categories.map { Category(it.id, it.name, it.colorHex, it.iconName, it.orderIndex) },
             stacks = payload.stacks.map { RoutineStackEntity(it.id, it.name, it.description, it.iconName, it.colorHex) },
             habits = payload.habits.map {
-                Habit(id = it.id, title = it.title, description = it.description, cueTrigger = it.cueTrigger,
+                Habit(
+                    id = it.id, title = it.title, description = it.description, cueTrigger = it.cueTrigger,
+                    checkInQuestion = it.checkInQuestion,
                     modality = runCatching { HabitModality.valueOf(it.modality) }.getOrDefault(HabitModality.YES_NO),
                     targetValue = it.targetValue, floorValue = it.floorValue, unit = it.unit, categoryId = it.categoryId,
                     colorHex = it.colorHex, iconName = it.iconName, reminderHour = it.reminderHour, reminderMinute = it.reminderMinute,
                     reminderDaysMask = it.reminderDaysMask, restDaysMask = it.restDaysMask, routineStackId = it.routineStackId,
-                    orderIndex = it.orderIndex, isArchived = it.isArchived, createdAt = it.createdAt)
+                    orderIndex = it.orderIndex, isArchived = it.isArchived, createdAt = it.createdAt
+                )
             },
             logs = payload.logs.map {
                 LogEntry(it.id, it.habitId, it.dateString, it.isCompleted, it.isFloorSustained, it.numericValue, it.durationSeconds, it.tallyCount, it.frictionTag, it.notes, it.recordedAt)

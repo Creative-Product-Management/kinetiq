@@ -27,6 +27,8 @@ class HabitNotificationReceiver : BroadcastReceiver() {
         val habitId = intent.getLongExtra(EXTRA_HABIT_ID, -1L)
         val habitTitle = intent.getStringExtra(EXTRA_HABIT_TITLE) ?: "Habit Reminder"
         val cue = intent.getStringExtra(EXTRA_HABIT_CUE) ?: ""
+        val checkInQuestion = intent.getStringExtra(EXTRA_CHECK_IN_QUESTION) ?: ""
+        val modality = intent.getStringExtra(EXTRA_HABIT_MODALITY) ?: ""
         val floorVal = intent.getDoubleExtra(EXTRA_FLOOR_VALUE, -1.0)
         val targetVal = intent.getDoubleExtra(EXTRA_TARGET_VALUE, 1.0)
         val unit = intent.getStringExtra(EXTRA_UNIT) ?: ""
@@ -35,7 +37,10 @@ class HabitNotificationReceiver : BroadcastReceiver() {
 
         when (action) {
             ACTION_HABIT_REMINDER -> {
-                showHabitReminderNotification(context, notificationManager, habitId, habitTitle, cue, floorVal, targetVal, unit)
+                showHabitReminderNotification(
+                    context, notificationManager, habitId, habitTitle, cue, checkInQuestion, modality,
+                    floorVal, targetVal, unit
+                )
                 // Re-arm the next occurrence so reminders repeat indefinitely.
                 if (habitId > 0 && !isTest) {
                     val pending = goAsync()
@@ -77,8 +82,14 @@ class HabitNotificationReceiver : BroadcastReceiver() {
                 val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
                 val snoozeIntent = Intent(context, HabitNotificationReceiver::class.java).apply {
                     this.action = ACTION_HABIT_REMINDER
-                    putExtra(EXTRA_HABIT_ID, habitId); putExtra(EXTRA_HABIT_TITLE, habitTitle); putExtra(EXTRA_HABIT_CUE, cue)
-                    putExtra(EXTRA_FLOOR_VALUE, floorVal); putExtra(EXTRA_TARGET_VALUE, targetVal); putExtra(EXTRA_UNIT, unit)
+                    putExtra(EXTRA_HABIT_ID, habitId)
+                    putExtra(EXTRA_HABIT_TITLE, habitTitle)
+                    putExtra(EXTRA_HABIT_CUE, cue)
+                    putExtra(EXTRA_CHECK_IN_QUESTION, checkInQuestion)
+                    putExtra(EXTRA_HABIT_MODALITY, modality)
+                    putExtra(EXTRA_FLOOR_VALUE, floorVal)
+                    putExtra(EXTRA_TARGET_VALUE, targetVal)
+                    putExtra(EXTRA_UNIT, unit)
                 }
                 val pi = PendingIntent.getBroadcast(context, PendingIntentCodes.code(habitId, PendingIntentCodes.SALT_SNOOZE), snoozeIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
                 val trigger = System.currentTimeMillis() + 15 * 60 * 1000
@@ -132,19 +143,45 @@ class HabitNotificationReceiver : BroadcastReceiver() {
         runCatching { notificationManager.notify(notificationId(habitId), n) }
     }
 
-    private fun showHabitReminderNotification(context: Context, notificationManager: NotificationManager, habitId: Long, habitTitle: String, cue: String, floorVal: Double, targetVal: Double, unit: String) {
+    private fun showHabitReminderNotification(
+        context: Context,
+        notificationManager: NotificationManager,
+        habitId: Long,
+        habitTitle: String,
+        cue: String,
+        checkInQuestion: String,
+        modality: String,
+        floorVal: Double,
+        targetVal: Double,
+        unit: String
+    ) {
         fun actionIntent(action: String) = Intent(context, HabitNotificationReceiver::class.java).apply {
-            this.action = action; putExtra(EXTRA_HABIT_ID, habitId); putExtra(EXTRA_HABIT_TITLE, habitTitle)
-            putExtra(EXTRA_HABIT_CUE, cue); putExtra(EXTRA_FLOOR_VALUE, floorVal); putExtra(EXTRA_TARGET_VALUE, targetVal); putExtra(EXTRA_UNIT, unit)
+            this.action = action
+            putExtra(EXTRA_HABIT_ID, habitId)
+            putExtra(EXTRA_HABIT_TITLE, habitTitle)
+            putExtra(EXTRA_HABIT_CUE, cue)
+            putExtra(EXTRA_CHECK_IN_QUESTION, checkInQuestion)
+            putExtra(EXTRA_HABIT_MODALITY, modality)
+            putExtra(EXTRA_FLOOR_VALUE, floorVal)
+            putExtra(EXTRA_TARGET_VALUE, targetVal)
+            putExtra(EXTRA_UNIT, unit)
         }
         val completePi = PendingIntent.getBroadcast(context, PendingIntentCodes.code(habitId, PendingIntentCodes.SALT_COMPLETE), actionIntent(ACTION_COMPLETE_TARGET), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val floorPi = PendingIntent.getBroadcast(context, PendingIntentCodes.code(habitId, PendingIntentCodes.SALT_FLOOR), actionIntent(ACTION_SUSTAIN_FLOOR), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val snoozePi = PendingIntent.getBroadcast(context, PendingIntentCodes.code(habitId, PendingIntentCodes.SALT_SNOOZE), actionIntent(ACTION_SNOOZE_15M), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
+        val isCheckIn = modality == "YES_NO"
+        val contentTitle = if (isCheckIn && checkInQuestion.isNotBlank()) checkInQuestion else "Habit Reminder: $habitTitle"
+        val contentText = when {
+            isCheckIn && checkInQuestion.isNotBlank() -> habitTitle
+            cue.isNotBlank() -> "Cue: $cue"
+            else -> "Time to preserve your momentum!"
+        }
+
         val builder = NotificationCompat.Builder(context, HabitNotificationScheduler.CHANNEL_REMINDERS_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("Habit Reminder: $habitTitle")
-            .setContentText(if (cue.isNotBlank()) "Cue: $cue" else "Time to preserve your momentum!")
+            .setContentTitle(contentTitle)
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(openAppPendingIntent(context, habitId))
             .setAutoCancel(true)
@@ -164,6 +201,7 @@ class HabitNotificationReceiver : BroadcastReceiver() {
         const val EXTRA_HABIT_ID = "extra_habit_id"
         const val EXTRA_HABIT_TITLE = "extra_habit_title"
         const val EXTRA_HABIT_CUE = "extra_habit_cue"
+        const val EXTRA_CHECK_IN_QUESTION = "extra_check_in_question"
         const val EXTRA_HABIT_MODALITY = "extra_habit_modality"
         const val EXTRA_FLOOR_VALUE = "extra_floor_value"
         const val EXTRA_TARGET_VALUE = "extra_target_value"

@@ -83,6 +83,7 @@ import com.example.R
 import com.example.data.model.HabitEntity
 import com.example.data.repository.HabitListLayout
 import com.example.ui.components.ActiveTimerDialog
+import com.example.ui.components.CreateHabitTypeSheet
 import com.example.ui.components.HabitActivityChart
 import com.example.ui.components.HabitCard
 import com.example.ui.components.HabitTableDateHeader
@@ -106,6 +107,7 @@ fun KineticDashboardScreen(
     modifier: Modifier = Modifier
 ) {
     var habitToDelete by remember { mutableStateOf<HabitEntity?>(null) }
+    var showCreateSheet by remember { mutableStateOf(false) }
     var viewMenuExpanded by remember { mutableStateOf(false) }
     var mainMenuExpanded by remember { mutableStateOf(false) }
     val habitCards by viewModel.habitCards.collectAsStateWithLifecycle()
@@ -229,7 +231,7 @@ fun KineticDashboardScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onOpenEditor(null) },
+                onClick = { showCreateSheet = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = CircleShape,
@@ -414,6 +416,17 @@ fun KineticDashboardScreen(
             },
             dismissButton = { TextButton(onClick = { habitToDelete = null }) { Text("Cancel") } },
             modifier = Modifier.testTag("delete_habit_confirm_dialog")
+        )
+    }
+
+    if (showCreateSheet) {
+        CreateHabitTypeSheet(
+            onDismiss = { showCreateSheet = false },
+            onComplete = { modality, initialCheckInQuestion ->
+                showCreateSheet = false
+                viewModel.beginCreateHabit(modality, initialCheckInQuestion)
+                onOpenEditor(null)
+            }
         )
     }
 }

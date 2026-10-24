@@ -32,3 +32,11 @@ fun HabitModality.toEditorKind(): EditorKind =
 
 fun resolveEditorModality(kind: EditorKind, logStyle: MeasurableLogStyle): HabitModality =
     if (kind == EditorKind.CHECK_IN) HabitModality.YES_NO else logStyle.toModality()
+
+/** Read-only label for the habit editor (type is locked after create). */
+fun modalityDisplayLabel(modality: HabitModality): String = when (modality) {
+    HabitModality.YES_NO -> "Check-in"
+    HabitModality.NUMERIC -> "Measurable · Amount"
+    HabitModality.TALLY -> "Measurable · Count"
+    HabitModality.TIMER -> "Measurable · Timer"
+}

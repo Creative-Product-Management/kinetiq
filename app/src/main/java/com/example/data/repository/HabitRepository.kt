@@ -36,7 +36,14 @@ class HabitRepository(
         return if (habit.id == 0L) {
             habitDao.insertHabit(habit)
         } else {
-            habitDao.updateHabit(habit)
+            // Modality is immutable after create — preserve existing type if a caller tries to change it.
+            val existing = habitDao.getHabitById(habit.id)
+            val toSave = if (existing != null && existing.modality != habit.modality) {
+                habit.copy(modality = existing.modality)
+            } else {
+                habit
+            }
+            habitDao.updateHabit(toSave)
             habit.id
         }
     }

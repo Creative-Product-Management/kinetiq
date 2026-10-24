@@ -29,6 +29,8 @@ data class Habit(
     val title: String,
     val description: String = "",
     val cueTrigger: String = "",
+    /** Short question for Check-in reminder notifications (not the display title). */
+    val checkInQuestion: String = "",
     val modality: HabitModality = HabitModality.YES_NO,
     val targetValue: Double = 1.0,
     val floorValue: Double? = null,
