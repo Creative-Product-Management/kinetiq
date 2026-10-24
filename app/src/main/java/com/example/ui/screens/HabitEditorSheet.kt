@@ -156,7 +156,10 @@ fun HabitEditorSheet(
     var scheduleExpanded by rememberSaveable(habit?.id) { mutableStateOf((habit?.restDaysMask ?: 0) != 0 || habit?.reminderHour != null) }
 
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val activeColor = remember(colorHex) { parseHabitColor(colorHex) }
+    // Habit color is for appearance preview / cards only — not editor chrome.
+    val habitColor = remember(colorHex) { parseHabitColor(colorHex) }
+    val chromeAccent = MaterialTheme.colorScheme.primary
+    val chromeOnAccent = MaterialTheme.colorScheme.onPrimary
 
     val isDirty = remember(
         title, description, cueTrigger, modality, targetValue, floorValue, unit,
@@ -214,15 +217,15 @@ fun HabitEditorSheet(
 
     val inputTextStyle = androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = activeColor,
+        focusedBorderColor = chromeAccent,
         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedTextColor = MaterialTheme.colorScheme.onSurface,
         unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-        focusedLabelColor = activeColor,
+        focusedLabelColor = chromeAccent,
         unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
         focusedContainerColor = MaterialTheme.colorScheme.surface,
         unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        cursorColor = activeColor
+        cursorColor = chromeAccent
     )
     val floorFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = FloorGold,
@@ -275,12 +278,15 @@ fun HabitEditorSheet(
             Column(modifier = Modifier.background(MaterialTheme.colorScheme.background).navigationBarsPadding().padding(horizontal = 20.dp, vertical = 10.dp)) {
                 Button(
                     onClick = { save() },
-                    colors = ButtonDefaults.buttonColors(containerColor = activeColor),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = chromeAccent,
+                        contentColor = chromeOnAccent
+                    ),
                     modifier = Modifier.fillMaxWidth().testTag("save_habit_btn")
                 ) {
-                    Icon(Icons.Default.Save, contentDescription = null, tint = Color.Black)
+                    Icon(Icons.Default.Save, contentDescription = null, tint = chromeOnAccent)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Save", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Save", color = chromeOnAccent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         },
@@ -310,8 +316,8 @@ fun HabitEditorSheet(
                     val label = if (k == EditorKind.CHECK_IN) "Check-in" else "Measurable"
                     Box(
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                            .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                            .background(if (isSelected) chromeAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
+                            .border(1.dp, if (isSelected) chromeAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                             .clickable { editorKind = k.name }
                             .padding(vertical = 10.dp, horizontal = 4.dp)
                             .testTag("editor_kind_${k.name}"),
@@ -342,8 +348,8 @@ fun HabitEditorSheet(
                         }
                         Box(
                             modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                                .background(if (isSelected) activeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
-                                .border(1.dp, if (isSelected) activeColor else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                                .background(if (isSelected) chromeAccent.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface)
+                                .border(1.dp, if (isSelected) chromeAccent else MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                                 .clickable { logStyle = style.name }
                                 .padding(vertical = 8.dp)
                                 .testTag("log_style_${style.name}"),
@@ -466,19 +472,19 @@ fun HabitEditorSheet(
                     val noneSelected = categoryId == null
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(20.dp))
-                            .background(if (noneSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                            .background(if (noneSelected) chromeAccent else MaterialTheme.colorScheme.surfaceVariant)
                             .clickable { categoryId = null }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                             .testTag("category_option_none")
                     ) {
-                        Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (noneSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (noneSelected) chromeOnAccent else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     categories.forEach { cat ->
                         val isSelected = categoryId == cat.id
                         Box(
-                            modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                            modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) chromeAccent else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { categoryId = cat.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("category_option_${cat.id}")
-                        ) { Text(text = cat.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant) }
+                        ) { Text(text = cat.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) chromeOnAccent else MaterialTheme.colorScheme.onSurfaceVariant) }
                     }
                 }
                 if (onManageCategories != null) {
@@ -491,13 +497,13 @@ fun HabitEditorSheet(
                 Text("Routine stack", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (routineStackId == null) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = null }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_none")) {
-                        Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (routineStackId == null) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                    Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (routineStackId == null) chromeAccent else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = null }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_none")) {
+                        Text("None", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (routineStackId == null) chromeOnAccent else MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     stacks.forEach { stack ->
                         val isSelected = routineStackId == stack.id
-                        Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = stack.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_${stack.id}")) {
-                            Text(stack.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Box(modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(if (isSelected) chromeAccent else MaterialTheme.colorScheme.surfaceVariant).clickable { routineStackId = stack.id }.padding(horizontal = 12.dp, vertical = 6.dp).testTag("stack_option_${stack.id}")) {
+                            Text(stack.name, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = if (isSelected) chromeOnAccent else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -515,7 +521,7 @@ fun HabitEditorSheet(
                 expanded = appearanceExpanded,
                 onToggle = { appearanceExpanded = !appearanceExpanded },
                 testTag = "editor_section_appearance",
-                summaryDotColor = activeColor
+                summaryDotColor = habitColor
             ) {
                 Text("Color", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(modifier = Modifier.height(6.dp))
@@ -562,7 +568,7 @@ fun HabitEditorSheet(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) activeColor else MaterialTheme.colorScheme.surfaceVariant)
+                                .background(if (isSelected) chromeAccent else MaterialTheme.colorScheme.surfaceVariant)
                                 .clickable { iconName = entry.name }
                                 .testTag("icon_chip_${entry.name}"),
                             contentAlignment = Alignment.Center
@@ -570,7 +576,7 @@ fun HabitEditorSheet(
                             Icon(
                                 imageVector = entry.vector,
                                 contentDescription = entry.name,
-                                tint = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = if (isSelected) chromeOnAccent else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(22.dp)
                             )
                         }

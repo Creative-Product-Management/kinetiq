@@ -27,7 +27,20 @@ class HabitRepository(
     suspend fun getHabitById(habitId: Long): Habit? = habitDao.getHabitById(habitId)
     fun getHabitByIdFlow(habitId: Long): Flow<Habit?> = habitDao.getHabitByIdFlow(habitId)
 
-    suspend fun saveHabit(habit: Habit): Long = habitDao.insertHabit(habit)
+    /**
+     * Inserts a new habit, or updates an existing one in place.
+     * Must not use INSERT REPLACE for edits: REPLACE deletes the row first and
+     * cascades to [log_entries] via ON DELETE CASCADE.
+     */
+    suspend fun saveHabit(habit: Habit): Long {
+        return if (habit.id == 0L) {
+            habitDao.insertHabit(habit)
+        } else {
+            habitDao.updateHabit(habit)
+            habit.id
+        }
+    }
+
     suspend fun updateHabit(habit: Habit) = habitDao.updateHabit(habit)
 
     /** FK cascade removes log entries atomically with the habit. */
