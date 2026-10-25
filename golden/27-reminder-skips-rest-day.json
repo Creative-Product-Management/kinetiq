@@ -1,0 +1,26 @@
+{
+  "id": "27-reminder-skips-rest-day",
+  "description": "Rest Wed -> Thu",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 10,
+      "floorValue": 2,
+      "unit": "reps",
+      "restDaysMask": 4,
+      "reminderHour": 8,
+      "reminderMinute": 0,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1791702000000,
+      "createdAtLocalDate": "2026-10-11"
+    },
+    "from": "2026-10-21T07:00"
+  },
+  "expected": {
+    "nextFire": "2026-10-22T08:00"
+  }
+}

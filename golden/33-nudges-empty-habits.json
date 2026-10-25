@@ -1,0 +1,11 @@
+{
+  "id": "33-nudges-empty-habits",
+  "description": "No habits -> empty nudges",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": []
+  },
+  "expected": {
+    "nudges": []
+  }
+}

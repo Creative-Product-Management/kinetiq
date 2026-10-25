@@ -1,0 +1,24 @@
+{
+  "passphrase": "kinetiq-golden-pass",
+  "saltHex": "000102030405060708090a0b0c0d0e0f",
+  "ivHex": "101112131415161718191a1b",
+  "pbkdf2": {
+    "algorithm": "PBKDF2WithHmacSHA256",
+    "iterations": 120000,
+    "keyBits": 256
+  },
+  "aesGcm": {
+    "transformation": "AES/GCM/NoPadding",
+    "tagBits": 128,
+    "aad": null
+  },
+  "envelopeFormat": "kinetiq-backup",
+  "envelopeVersion": 1,
+  "payloadSchemaVersion": 1,
+  "files": {
+    "encrypted": "backup-sample.kqbak",
+    "decryptedJson": "backup-sample.payload.json",
+    "decryptedJsonPretty": "backup-sample.payload.pretty.json"
+  },
+  "notes": "backup-sample.payload.json is the exact UTF-8 plaintext encrypted into the .kqbak (Moshi compact, serializeNulls). AAD is not used. See BACKUP_FORMAT.md."
+}

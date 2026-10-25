@@ -1,0 +1,28 @@
+{
+  "id": "16-effective-floor-null-uses-025",
+  "description": "Null floorValue -> target * 0.25 at runtime",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 100,
+      "floorValue": null,
+      "unit": "reps",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    },
+    "settingsDefaultFloorPercent": 33
+  },
+  "expected": {
+    "runtimeEffectiveFloor": 25,
+    "editorPlaceholderAt33": 33,
+    "settingsIgnoredAtRuntime": true
+  }
+}

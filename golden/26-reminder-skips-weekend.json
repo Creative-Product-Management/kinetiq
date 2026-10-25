@@ -1,0 +1,26 @@
+{
+  "id": "26-reminder-skips-weekend",
+  "description": "Fri after hour -> next Mon",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 10,
+      "floorValue": 2,
+      "unit": "reps",
+      "restDaysMask": 0,
+      "reminderHour": 8,
+      "reminderMinute": 0,
+      "reminderDaysMask": 31,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1790146800000,
+      "createdAtLocalDate": "2026-09-23"
+    },
+    "from": "2026-10-23T09:00"
+  },
+  "expected": {
+    "nextFire": "2026-10-26T08:00"
+  }
+}

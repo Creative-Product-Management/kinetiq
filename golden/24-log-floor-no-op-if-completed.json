@@ -1,0 +1,29 @@
+{
+  "id": "24-log-floor-no-op-if-completed",
+  "description": "Floor sustain ignored when already completed",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 10,
+      "floorValue": 2,
+      "unit": "reps",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    },
+    "existingCompleted": true
+  },
+  "expected": {
+    "outcome": {
+      "effectiveFloor": 2,
+      "noOp": true
+    }
+  }
+}

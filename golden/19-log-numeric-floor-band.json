@@ -1,0 +1,33 @@
+{
+  "id": "19-log-numeric-floor-band",
+  "description": "Amount in [floor, target) -> floor sustained",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 10,
+      "floorValue": 3,
+      "unit": "reps",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    },
+    "action": "logNumericProgress",
+    "amount": 5
+  },
+  "expected": {
+    "outcome": {
+      "effectiveFloor": 3,
+      "isCompleted": false,
+      "isFloorSustained": true,
+      "numericValue": 5,
+      "deleted": false
+    }
+  }
+}

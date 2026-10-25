@@ -1,0 +1,126 @@
+{
+  "id": "09-miss-breaks-current-streak",
+  "description": "Gap day ends current streak; best may remain",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792134000000,
+        "createdAtLocalDate": "2026-10-16"
+      }
+    ],
+    "logs": [
+      {
+        "habitId": 1,
+        "dateString": "2026-10-17",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-18",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-21",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      }
+    ]
+  },
+  "expected": {
+    "analytics": {
+      "momentumPercent": 18,
+      "habitStrengthPercent": 18,
+      "trajectory": "Accelerating",
+      "currentStreak": 1,
+      "bestStreak": 2,
+      "totalTargetCompletions": 3,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 138,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 2
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [
+        {
+          "date": "2026-10-17",
+          "dayOfWeek": 6,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-17: Completed Target"
+        },
+        {
+          "date": "2026-10-18",
+          "dayOfWeek": 7,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-18: Completed Target"
+        }
+      ],
+      "momentumHistoryLast7": [
+        null,
+        0,
+        6.999999046325684,
+        13.509997367858887,
+        12.564298629760742,
+        11.684797286987305,
+        17.86686134338379
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-19",
+          "strengthTimes100": 12.564298629760742
+        },
+        {
+          "date": "2026-10-20",
+          "strengthTimes100": 11.684797286987305
+        },
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 17.86686134338379
+        }
+      ]
+    }
+  }
+}

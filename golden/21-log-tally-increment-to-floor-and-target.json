@@ -1,0 +1,48 @@
+{
+  "id": "21-log-tally-increment-to-floor-and-target",
+  "description": "Tally steps through floor then target",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "TALLY",
+      "targetValue": 3,
+      "floorValue": 2,
+      "unit": "times",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    }
+  },
+  "expected": {
+    "after1": {
+      "effectiveFloor": 2,
+      "tallyCount": 1,
+      "numericValue": 1,
+      "isCompleted": false,
+      "isFloorSustained": false,
+      "deleted": false
+    },
+    "after2": {
+      "effectiveFloor": 2,
+      "tallyCount": 2,
+      "numericValue": 2,
+      "isCompleted": false,
+      "isFloorSustained": true,
+      "deleted": false
+    },
+    "after3": {
+      "effectiveFloor": 2,
+      "tallyCount": 3,
+      "numericValue": 3,
+      "isCompleted": true,
+      "isFloorSustained": false,
+      "deleted": false
+    }
+  }
+}

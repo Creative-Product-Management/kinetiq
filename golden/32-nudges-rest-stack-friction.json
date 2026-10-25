@@ -1,0 +1,103 @@
+{
+  "id": "32-nudges-rest-stack-friction",
+  "description": "Rest tomorrow, stack pending, friction insight",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Walk",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792306800000,
+        "createdAtLocalDate": "2026-10-18"
+      },
+      {
+        "id": 2,
+        "title": "Journal",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 8,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": 9,
+        "orderIndex": 0,
+        "createdAt": 1792306800000,
+        "createdAtLocalDate": "2026-10-18"
+      }
+    ],
+    "stacks": [
+      {
+        "id": 9,
+        "name": "Morning Routine"
+      }
+    ],
+    "logs": [
+      {
+        "habitId": 1,
+        "dateString": "2026-10-19",
+        "isCompleted": false,
+        "isFloorSustained": false,
+        "numericValue": 0,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": "Time Crunch"
+      }
+    ]
+  },
+  "expected": {
+    "nudges": [
+      {
+        "id": "today-momentum",
+        "type": "MOMENTUM_BOOST",
+        "title": "Today's Momentum",
+        "subtitle": "Walk is not logged yet today. A floor log still counts.",
+        "actionLabel": "Log floor",
+        "targetHabitId": 1
+      },
+      {
+        "id": "momentum-progress",
+        "type": "INSIGHT",
+        "title": "Momentum builds day by day",
+        "subtitle": "Journal is your strongest habit at 55%. A target day adds about 7% — consistency compounds.",
+        "actionLabel": "View habit",
+        "targetHabitId": 2
+      },
+      {
+        "id": "rest-shield",
+        "type": "REST_SHIELD",
+        "title": "Rest shield tomorrow",
+        "subtitle": "Journal has a scheduled rest day tomorrow — decay stays frozen.",
+        "actionLabel": "View habit",
+        "targetHabitId": 2
+      },
+      {
+        "id": "routine-stacks",
+        "type": "STACK_PRIMED",
+        "title": "Morning Routine is ready",
+        "subtitle": "Journal is next in Morning Routine and not yet logged today.",
+        "actionLabel": "Open habit",
+        "targetHabitId": 2
+      },
+      {
+        "id": "insight-friction",
+        "type": "INSIGHT",
+        "title": "Friction logged 1 time",
+        "subtitle": "Open a habit's analytics to see what most often blocks you.",
+        "actionLabel": "Review habits",
+        "targetHabitId": 1
+      }
+    ]
+  }
+}

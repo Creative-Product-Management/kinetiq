@@ -1,0 +1,136 @@
+{
+  "id": "34-timezone-createdAt-same-local-day",
+  "description": "createdAt millis at local start-of-day matches clock day",
+  "input": {
+    "clockToday": "2026-10-21",
+    "zone": "America/Vancouver",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792566000000,
+        "createdAtLocalDate": "2026-10-21"
+      },
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792652340000,
+        "createdAtLocalDate": "2026-10-21"
+      }
+    ]
+  },
+  "expected": {
+    "midnightCreate": {
+      "momentumPercent": 7,
+      "habitStrengthPercent": 7,
+      "trajectory": "Accelerating",
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "totalTargetCompletions": 1,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 140,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 0
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [],
+      "momentumHistoryLast7": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        6.999999046325684
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 6.999999046325684
+        }
+      ]
+    },
+    "lateCreateSameDay": {
+      "momentumPercent": 7,
+      "habitStrengthPercent": 7,
+      "trajectory": "Accelerating",
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "totalTargetCompletions": 1,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 140,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 0
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [],
+      "momentumHistoryLast7": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        6.999999046325684
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 6.999999046325684
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "id": "31-nudges-pending-and-complete",
+  "description": "Hero slides before/after logging today",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Meditate",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792134000000,
+        "createdAtLocalDate": "2026-10-16"
+      }
+    ]
+  },
+  "expected": {
+    "pending": [
+      {
+        "id": "today-momentum",
+        "type": "MOMENTUM_BOOST",
+        "title": "Today's Momentum",
+        "subtitle": "Meditate is not logged yet today. A floor log still counts.",
+        "actionLabel": "Log floor",
+        "targetHabitId": 1
+      },
+      {
+        "id": "momentum-progress",
+        "type": "INSIGHT",
+        "title": "Momentum builds day by day",
+        "subtitle": "Meditate is your strongest habit at 40%. A target day adds about 7% — consistency compounds.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      },
+      {
+        "id": "rest-shield",
+        "type": "REST_SHIELD",
+        "title": "Rest days protect Momentum",
+        "subtitle": "Schedule rest days in a habit's editor and Momentum freezes on those days — no gain, no loss, streak preserved.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      },
+      {
+        "id": "routine-stacks",
+        "type": "STACK_PRIMED",
+        "title": "Stack habits into routines",
+        "subtitle": "Group related habits into a routine stack in the habit editor, so finishing one habit cues the next.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      }
+    ],
+    "complete": [
+      {
+        "id": "today-momentum",
+        "type": "MOMENTUM_BOOST",
+        "title": "Today's Momentum",
+        "subtitle": "Everything due today is logged — today's Momentum is protected. Nice work.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      },
+      {
+        "id": "momentum-progress",
+        "type": "INSIGHT",
+        "title": "Momentum builds day by day",
+        "subtitle": "Meditate is your strongest habit at 40%. A target day adds about 7% — consistency compounds.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      },
+      {
+        "id": "rest-shield",
+        "type": "REST_SHIELD",
+        "title": "Rest days protect Momentum",
+        "subtitle": "Schedule rest days in a habit's editor and Momentum freezes on those days — no gain, no loss, streak preserved.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      },
+      {
+        "id": "routine-stacks",
+        "type": "STACK_PRIMED",
+        "title": "Stack habits into routines",
+        "subtitle": "Group related habits into a routine stack in the habit editor, so finishing one habit cues the next.",
+        "actionLabel": "View habit",
+        "targetHabitId": 1
+      }
+    ]
+  }
+}
