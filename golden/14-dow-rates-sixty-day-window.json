@@ -1,0 +1,222 @@
+{
+  "id": "14-dow-rates-sixty-day-window",
+  "description": "DOW rates over 60 days with Mon-only targets",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1787382000000,
+        "createdAtLocalDate": "2026-08-22"
+      }
+    ],
+    "logs": [
+      {
+        "habitId": 1,
+        "dateString": "2026-08-24",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-08-31",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-07",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-14",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-21",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-28",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-05",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-12",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-19",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      }
+    ]
+  },
+  "expected": {
+    "analytics": {
+      "momentumPercent": 15,
+      "habitStrengthPercent": 15,
+      "trajectory": "Forming Routine",
+      "currentStreak": 0,
+      "bestStreak": 1,
+      "totalTargetCompletions": 9,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 132,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 8
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [
+        {
+          "date": "2026-08-24",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-08-24: Completed Target"
+        },
+        {
+          "date": "2026-08-31",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-08-31: Completed Target"
+        },
+        {
+          "date": "2026-09-07",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-07: Completed Target"
+        },
+        {
+          "date": "2026-09-14",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-14: Completed Target"
+        },
+        {
+          "date": "2026-09-21",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-21: Completed Target"
+        },
+        {
+          "date": "2026-09-28",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-28: Completed Target"
+        },
+        {
+          "date": "2026-10-05",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-05: Completed Target"
+        },
+        {
+          "date": "2026-10-12",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-12: Completed Target"
+        }
+      ],
+      "momentumHistoryLast7": [
+        13.893482208251953,
+        12.920938491821289,
+        12.016472816467285,
+        11.175320625305176,
+        17.393047332763672,
+        16.175533294677734,
+        15.04324722290039
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-19",
+          "strengthTimes100": 17.393047332763672
+        },
+        {
+          "date": "2026-10-20",
+          "strengthTimes100": 16.175533294677734
+        },
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 15.04324722290039
+        }
+      ]
+    }
+  }
+}

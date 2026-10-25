@@ -1,0 +1,610 @@
+{
+  "id": "15-trajectory-steady-high",
+  "description": "Long target streak -> Steady High or Accelerating",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1789110000000,
+        "createdAtLocalDate": "2026-09-11"
+      }
+    ],
+    "logs": [
+      {
+        "habitId": 1,
+        "dateString": "2026-09-11",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-12",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-13",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-14",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-15",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-16",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-17",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-18",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-19",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-20",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-21",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-22",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-23",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-24",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-25",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-26",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-27",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-28",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-29",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-09-30",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-01",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-02",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-03",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-04",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-05",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-06",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-07",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-08",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-09",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-10",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-11",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-12",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-13",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-14",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-15",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-16",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-17",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-18",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-19",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-20",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      }
+    ]
+  },
+  "expected": {
+    "analytics": {
+      "momentumPercent": 88,
+      "habitStrengthPercent": 88,
+      "trajectory": "Rebuilding",
+      "currentStreak": 40,
+      "bestStreak": 40,
+      "totalTargetCompletions": 40,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        1,
+        1,
+        0.8333333134651184,
+        1,
+        1,
+        1,
+        1
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 102,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 38
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [
+        {
+          "date": "2026-09-28",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-28: Completed Target"
+        },
+        {
+          "date": "2026-09-29",
+          "dayOfWeek": 2,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-29: Completed Target"
+        },
+        {
+          "date": "2026-09-30",
+          "dayOfWeek": 3,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-09-30: Completed Target"
+        },
+        {
+          "date": "2026-10-01",
+          "dayOfWeek": 4,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-01: Completed Target"
+        },
+        {
+          "date": "2026-10-02",
+          "dayOfWeek": 5,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-02: Completed Target"
+        },
+        {
+          "date": "2026-10-03",
+          "dayOfWeek": 6,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-03: Completed Target"
+        },
+        {
+          "date": "2026-10-04",
+          "dayOfWeek": 7,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-04: Completed Target"
+        },
+        {
+          "date": "2026-10-05",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-05: Completed Target"
+        },
+        {
+          "date": "2026-10-06",
+          "dayOfWeek": 2,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-06: Completed Target"
+        },
+        {
+          "date": "2026-10-07",
+          "dayOfWeek": 3,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-07: Completed Target"
+        },
+        {
+          "date": "2026-10-08",
+          "dayOfWeek": 4,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-08: Completed Target"
+        },
+        {
+          "date": "2026-10-09",
+          "dayOfWeek": 5,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-09: Completed Target"
+        },
+        {
+          "date": "2026-10-10",
+          "dayOfWeek": 6,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-10: Completed Target"
+        },
+        {
+          "date": "2026-10-11",
+          "dayOfWeek": 7,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-11: Completed Target"
+        },
+        {
+          "date": "2026-10-12",
+          "dayOfWeek": 1,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-12: Completed Target"
+        },
+        {
+          "date": "2026-10-13",
+          "dayOfWeek": 2,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-13: Completed Target"
+        },
+        {
+          "date": "2026-10-14",
+          "dayOfWeek": 3,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-14: Completed Target"
+        },
+        {
+          "date": "2026-10-15",
+          "dayOfWeek": 4,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-15: Completed Target"
+        },
+        {
+          "date": "2026-10-16",
+          "dayOfWeek": 5,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-16: Completed Target"
+        },
+        {
+          "date": "2026-10-17",
+          "dayOfWeek": 6,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-17: Completed Target"
+        },
+        {
+          "date": "2026-10-18",
+          "dayOfWeek": 7,
+          "state": "FULL_COMPLETED",
+          "tooltip": "2026-10-18: Completed Target"
+        }
+      ],
+      "momentumHistoryLast7": [
+        92.1131591796875,
+        92.66523742675781,
+        93.17867279052734,
+        93.65616607666016,
+        94.10022735595703,
+        94.51321411132812,
+        87.89728546142578
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-19",
+          "strengthTimes100": 94.10022735595703
+        },
+        {
+          "date": "2026-10-20",
+          "strengthTimes100": 94.51321411132812
+        },
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 87.89728546142578
+        }
+      ]
+    }
+  }
+}

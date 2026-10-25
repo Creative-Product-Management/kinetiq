@@ -1,0 +1,25 @@
+{
+  "id": "17-effective-floor-explicit",
+  "description": "Explicit floorValue wins over 0.25",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "NUMERIC",
+      "targetValue": 100,
+      "floorValue": 7,
+      "unit": "reps",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    }
+  },
+  "expected": {
+    "runtimeEffectiveFloor": 7
+  }
+}

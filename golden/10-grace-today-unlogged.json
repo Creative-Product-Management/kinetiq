@@ -1,0 +1,103 @@
+{
+  "id": "10-grace-today-unlogged",
+  "description": "Unlogged today uses yesterday for streak cursor",
+  "input": {
+    "clockToday": "2026-10-21",
+    "habits": [
+      {
+        "id": 1,
+        "title": "Test",
+        "modality": "NUMERIC",
+        "targetValue": 10,
+        "floorValue": 2,
+        "unit": "reps",
+        "restDaysMask": 0,
+        "reminderHour": null,
+        "reminderMinute": null,
+        "reminderDaysMask": 127,
+        "routineStackId": null,
+        "orderIndex": 0,
+        "createdAt": 1792306800000,
+        "createdAtLocalDate": "2026-10-18"
+      }
+    ],
+    "logs": [
+      {
+        "habitId": 1,
+        "dateString": "2026-10-19",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      },
+      {
+        "habitId": 1,
+        "dateString": "2026-10-20",
+        "isCompleted": true,
+        "isFloorSustained": false,
+        "numericValue": 10,
+        "durationSeconds": 0,
+        "tallyCount": 0,
+        "frictionTag": null
+      }
+    ]
+  },
+  "expected": {
+    "analytics": {
+      "momentumPercent": 13,
+      "habitStrengthPercent": 13,
+      "trajectory": "Accelerating",
+      "currentStreak": 2,
+      "bestStreak": 2,
+      "totalTargetCompletions": 2,
+      "totalFloorSustains": 0,
+      "dayOfWeekRates": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "frictionCounts": {},
+      "heatmapSize": 140,
+      "heatmapFirstDayOfWeek": 1,
+      "heatmapStateCounts": {
+        "NONE": 140,
+        "MISSED": 0,
+        "REST_SHIELD": 0,
+        "FLOOR_SUSTAINED": 0,
+        "FULL_COMPLETED": 0
+      },
+      "todayHeatmapState": null,
+      "todayHeatmapTooltip": null,
+      "recentNonNoneHeatmapCells": [],
+      "momentumHistoryLast7": [
+        null,
+        null,
+        null,
+        0,
+        6.999999046325684,
+        13.509997367858887,
+        12.564298629760742
+      ],
+      "strengthHistoryLast3": [
+        {
+          "date": "2026-10-19",
+          "strengthTimes100": 6.999999046325684
+        },
+        {
+          "date": "2026-10-20",
+          "strengthTimes100": 13.509997367858887
+        },
+        {
+          "date": "2026-10-21",
+          "strengthTimes100": 12.564298629760742
+        }
+      ]
+    }
+  }
+}

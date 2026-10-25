@@ -1,0 +1,13 @@
+{
+  "id": "28-reminder-null-and-digest",
+  "description": "No reminder -> null; digest hour roll",
+  "input": {
+    "from": "2026-10-21T21:00",
+    "digestHour": 20
+  },
+  "expected": {
+    "habitNextFire": null,
+    "digestFire": "2026-10-22T20:00",
+    "digestFireMorning": "2026-10-22T08:00"
+  }
+}

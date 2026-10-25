@@ -1,0 +1,60 @@
+{
+  "id": "22-log-timer-duration-floor-and-target",
+  "description": "Timer seconds vs floor/target minutes",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "TIMER",
+      "targetValue": 20,
+      "floorValue": 5,
+      "unit": "mins",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    }
+  },
+  "expected": {
+    "belowFloor": {
+      "effectiveFloor": 5,
+      "durationSeconds": 60,
+      "numericValue": 1,
+      "isCompleted": false,
+      "isFloorSustained": false,
+      "deleted": false
+    },
+    "atFloor": {
+      "effectiveFloor": 5,
+      "durationSeconds": 300,
+      "numericValue": 5,
+      "isCompleted": false,
+      "isFloorSustained": true,
+      "deleted": false
+    },
+    "atTarget": {
+      "effectiveFloor": 5,
+      "durationSeconds": 1200,
+      "numericValue": 20,
+      "isCompleted": true,
+      "isFloorSustained": false,
+      "deleted": false
+    },
+    "zeroNoOp": {
+      "effectiveFloor": 5,
+      "noOp": true
+    },
+    "accumulate": {
+      "effectiveFloor": 5,
+      "durationSeconds": 300,
+      "numericValue": 5,
+      "isCompleted": false,
+      "isFloorSustained": true,
+      "deleted": false
+    }
+  }
+}

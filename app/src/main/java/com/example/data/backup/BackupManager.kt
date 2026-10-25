@@ -116,11 +116,26 @@ object BackupCrypto {
     private const val ITERATIONS = 120_000
     private const val KEY_BITS = 256
 
-    fun encrypt(plain: ByteArray, passphrase: CharArray, envelopeAdapter: com.squareup.moshi.JsonAdapter<BackupEnvelope>): ByteArray {
-        val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
-        val iv = ByteArray(12).also { SecureRandom().nextBytes(it) }
+    /**
+     * Encrypts [plain] into a UTF-8 JSON [BackupEnvelope].
+     * [saltOverride] / [ivOverride] must be 16 / 12 bytes when set (golden fixtures);
+     * otherwise SecureRandom fills them.
+     * AAD is not used — [Cipher.updateAAD] is never called.
+     */
+    fun encrypt(
+        plain: ByteArray,
+        passphrase: CharArray,
+        envelopeAdapter: com.squareup.moshi.JsonAdapter<BackupEnvelope>,
+        saltOverride: ByteArray? = null,
+        ivOverride: ByteArray? = null
+    ): ByteArray {
+        require(saltOverride == null || saltOverride.size == 16) { "salt must be 16 bytes" }
+        require(ivOverride == null || ivOverride.size == 12) { "iv must be 12 bytes" }
+        val salt = saltOverride ?: ByteArray(16).also { SecureRandom().nextBytes(it) }
+        val iv = ivOverride ?: ByteArray(12).also { SecureRandom().nextBytes(it) }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, deriveKey(passphrase, salt), GCMParameterSpec(128, iv))
+        // doFinal output = ciphertext || 16-byte GCM auth tag (tag length from GCMParameterSpec).
         val encrypted = cipher.doFinal(plain)
         val envelope = BackupEnvelope(
             salt = Base64.getEncoder().encodeToString(salt),

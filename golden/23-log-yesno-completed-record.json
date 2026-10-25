@@ -1,0 +1,33 @@
+{
+  "id": "23-log-yesno-completed-record",
+  "description": "YES_NO completedRecord shape",
+  "input": {
+    "habit": {
+      "id": 1,
+      "title": "Test",
+      "modality": "YES_NO",
+      "targetValue": 1,
+      "floorValue": null,
+      "unit": "",
+      "restDaysMask": 0,
+      "reminderHour": null,
+      "reminderMinute": null,
+      "reminderDaysMask": 127,
+      "routineStackId": null,
+      "orderIndex": 0,
+      "createdAt": 1792566000000,
+      "createdAtLocalDate": "2026-10-21"
+    }
+  },
+  "expected": {
+    "outcome": {
+      "effectiveFloor": 0.25,
+      "isCompleted": true,
+      "isFloorSustained": false,
+      "numericValue": 1,
+      "durationSeconds": 0,
+      "tallyCount": 1,
+      "deleted": false
+    }
+  }
+}
